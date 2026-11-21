@@ -34,12 +34,8 @@ const props = defineProps({
 });
 const emit = defineEmits(["navigate", "play-song", "go-back", "clear-recent"]);
 
-// 最近播放列表展开状态
-const showAllRecent = ref(false);
-
 // 清空最近播放
 function clearRecent() {
-  showAllRecent.value = false;
   emit("clear-recent");
 }
 
@@ -243,10 +239,10 @@ function handleQuickCardClick(id) {
           </button>
 
           <button
-            v-if="recentSongs.length > 5"
-            @click="showAllRecent = !showAllRecent"
+            v-if="recentSongs.length > 6"
+            @click="emit('navigate', 'recent-played')"
           >
-            {{ showAllRecent ? "收起" : "查看全部" }}
+            查看全部
           </button>
         </div>
 
@@ -254,7 +250,7 @@ function handleQuickCardClick(id) {
       </div>
       <div v-if="recentSongs.length > 0" class="recent-list">
         <button
-          v-for="(song, index) in recentSongs.slice(0, showAllRecent ? 10 : 5)"
+          v-for="(song, index) in recentSongs.slice(0, 6)"
           :key="song.id"
           class="recent-item"
           @click="emit('play-song', song)"

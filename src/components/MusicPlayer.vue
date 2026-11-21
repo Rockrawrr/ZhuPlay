@@ -420,7 +420,7 @@ function formatTime(time) {
 }
 
 .progress-slider:disabled {
-  cursor: not-allowed;
+  cursor: default;
   opacity: 0.5;
 }
 

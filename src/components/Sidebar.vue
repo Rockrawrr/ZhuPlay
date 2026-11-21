@@ -7,7 +7,15 @@ import {
   ListMusic,
   Plus,
   Music2,
+  Clock3,
 } from "lucide-vue-next";
+
+defineProps({
+  currentPage: {
+    type: String,
+    default: "home",
+  },
+});
 
 const emit = defineEmits(["navigate"]);
 </script>
@@ -22,9 +30,10 @@ const emit = defineEmits(["navigate"]);
 
     <!-- 主导航 -->
     <nav class="nav-menu">
+      <!-- 首页 -->
       <a
         class="nav-item"
-        :class="{ active: true }"
+        :class="{ active: currentPage === 'home' }"
         href="#"
         @click.prevent="emit('navigate', 'home')"
       >
@@ -32,6 +41,18 @@ const emit = defineEmits(["navigate"]);
         <span>首页</span>
       </a>
 
+      <!-- 最近播放 -->
+      <a
+        class="nav-item"
+        :class="{ active: currentPage === 'recent-played' }"
+        href="#"
+        @click.prevent="emit('navigate', 'recent-played')"
+      >
+        <Clock3 :size="21" />
+        <span>最近播放</span>
+      </a>
+
+      <!-- 搜索 -->
       <a class="nav-item" href="#">
         <Search :size="21" />
         <span>搜索</span>
@@ -43,6 +64,7 @@ const emit = defineEmits(["navigate"]);
       <div class="library-header">
         <div
           class="library-title"
+          :class="{ active: currentPage === 'library' }"
           @click="emit('navigate', 'library')"
           style="cursor: pointer"
         >
@@ -55,8 +77,10 @@ const emit = defineEmits(["navigate"]);
         </button>
       </div>
 
+      <!-- 喜欢的音乐 -->
       <a
         class="nav-item"
+        :class="{ active: currentPage === 'favorites' }"
         href="#"
         @click.prevent="emit('navigate', 'favorites')"
       >
@@ -64,6 +88,7 @@ const emit = defineEmits(["navigate"]);
         <span>喜欢的音乐</span>
       </a>
 
+      <!-- 我的歌单 -->
       <a class="nav-item" href="#" @click.prevent="emit('navigate', 'library')">
         <ListMusic :size="21" />
         <span>我的歌单</span>
@@ -133,10 +158,22 @@ const emit = defineEmits(["navigate"]);
 .library-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
+  padding: 12px 10px;
+  margin: -12px -10px;
+  border-radius: 6px;
   color: #b3b3b3;
   font-size: 14px;
   font-weight: 600;
+  transition: 0.2s;
+}
+
+.library-title:hover {
+  color: #fff;
+}
+
+.library-title.active {
+  color: #fff;
 }
 
 .icon-button {

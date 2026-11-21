@@ -46,7 +46,7 @@ export const useMusicStore = defineStore("music", {
       this.recentSongs = [
         song,
         ...this.recentSongs.filter((item) => item.id !== song.id),
-      ].slice(0, 10);
+      ].slice(0, 50); // 保留最近 50 条记录
     },
 
     // 清空最近播放记录

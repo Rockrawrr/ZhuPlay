@@ -5,6 +5,7 @@ import Sidebar from "./components/Sidebar.vue";
 import MainContent from "./components/MainContent.vue";
 import MusicLibrary from "./components/MusicLibrary.vue";
 import FavoriteMusic from "./components/FavoriteMusic.vue";
+import RecentPlayed from "./components/RecentPlayed.vue";
 import MusicPlayer from "./components/MusicPlayer.vue";
 import { storeToRefs } from "pinia";
 import { useMusicStore } from "./stores/music";
@@ -59,10 +60,17 @@ function goBack() {
 
 // 清空最近播放记录
 function clearRecentSongs() {
+  console.log("清空记录按钮已触发");
+
   const confirmed = window.confirm("确定清空最近播放记录吗？");
+
+  console.log("用户确认结果：", confirmed);
+
   if (!confirmed) return;
 
   musicStore.clearRecentSongs();
+
+  console.log("清空后的记录：", musicStore.recentSongs);
 }
 
 const toggleFavorite = musicStore.toggleFavorite;
@@ -310,7 +318,7 @@ onUnmounted(() => {
 <template>
   <div class="app-layout">
     <div class="app-body">
-      <Sidebar @navigate="navigateTo" />
+      <Sidebar :current-page="currentPage" @navigate="navigateTo" />
 
       <MainContent
         v-if="currentPage === 'home'"
@@ -323,6 +331,15 @@ onUnmounted(() => {
         @go-back="goBack"
         :favorite-songs="favoriteSongsList"
         @clear-recent="clearRecentSongs"
+      />
+
+      <RecentPlayed
+        v-else-if="currentPage === 'recent-played'"
+        :songs="recentSongs"
+        :can-go-back="navigationHistory.length > 0"
+        @play-song="playSong"
+        @clear-recent="clearRecentSongs"
+        @go-back="goBack"
       />
 
       <MusicLibrary

@@ -121,8 +121,13 @@ function toggleFavorite(songId) {
 
 <style scoped>
 .music-library {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 28px 32px;
   color: #fff;
+  overflow: hidden;
 }
 
 .library-header {
@@ -130,6 +135,7 @@ function toggleFavorite(songId) {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 28px;
+  flex-shrink: 0;
 }
 
 .library-header h2 {
@@ -156,6 +162,7 @@ function toggleFavorite(songId) {
   color: #000;
   font-weight: 700;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .import-button:hover {
@@ -163,7 +170,8 @@ function toggleFavorite(songId) {
 }
 
 .empty-library {
-  min-height: 280px;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -181,10 +189,40 @@ function toggleFavorite(songId) {
   font-size: 18px;
 }
 
+.song-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+}
+
+.song-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.song-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.song-list::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+.song-list::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
 .song-count {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   color: #999;
   font-size: 13px;
-  margin-bottom: 12px;
+  padding: 4px 0 12px;
+  margin-bottom: 4px;
+  background: #121212;
 }
 
 .library-heading {
