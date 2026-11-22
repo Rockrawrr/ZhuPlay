@@ -112,6 +112,19 @@ function registerAppProtocol() {
 let mainWindow = null;
 let tray = null;
 let isQuitting = false;
+let hasNotifiedTray = false;
+
+// 统一入口：把主窗口显示出来（隐藏 / 最小化 / 已销毁都要处理）
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  if (!mainWindow.isVisible()) mainWindow.show();
+  mainWindow.focus();
+}
 
 // ===== 托盘 =====
 
@@ -130,7 +143,7 @@ function createTray() {
 
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "显示 ZhuPlay", click: showWindow },
+      { label: "显示 ZhuPlay", click: showMainWindow },
       { label: "隐藏到托盘", click: () => mainWindow?.hide() },
       { type: "separator" },
       {
@@ -157,12 +170,8 @@ function createTray() {
 
   // 左键点托盘图标：在显示/隐藏之间切换
   tray.on("click", () => {
-    if (!mainWindow) return createWindow();
-    if (mainWindow.isVisible()) mainWindow.hide();
-    else {
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    if (mainWindow?.isVisible()) mainWindow.hide();
+    else showMainWindow();
   });
 }
 
@@ -295,6 +304,16 @@ function createWindow() {
 
     event.preventDefault();
     mainWindow.hide();
+
+    // 第一次收进托盘时提示一下，避免"双击图标没反应"的困惑
+    if (!hasNotifiedTray) {
+      hasNotifiedTray = true;
+      tray?.displayBalloon({
+        title: "ZhuPlay 仍在后台运行",
+        content: "点击托盘图标可以重新打开，右键托盘菜单可以退出。",
+        iconType: "info",
+      });
+    }
   });
 
   // 不在应用内打开新窗口（外链交给系统浏览器）
@@ -328,10 +347,9 @@ function createWindow() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
+  // 再次双击图标启动时：把已有窗口（可能藏在托盘里）叫出来
   app.on("second-instance", () => {
-    if (!mainWindow) return;
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
+    showMainWindow();
   });
 
   app.whenReady().then(() => {
@@ -382,7 +400,8 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      // macOS 点 Dock 图标时也要把隐藏的窗口叫回来
+      showMainWindow();
     });
   });
 
