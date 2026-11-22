@@ -14,7 +14,7 @@ import { usePlaylistStore } from "@/stores/playlist";
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
 import { STORAGE_KEYS } from "@/storage/keys";
-import { releaseSongAudioUrl } from "@/services/assetUrls";
+import { releaseAllAudioUrls, releaseSongAudioUrl } from "@/services/assetUrls";
 
 export function useMusicActions() {
   const musicStore = useMusicStore();
@@ -123,8 +123,7 @@ export function useMusicActions() {
   }
 
   // 从最近播放里移除单首歌（右键菜单用），需要同步落库
-  async function removeRecentSong(songId) {
-    musicStore.removeRecentSong(songId);
+  async function removeRecentSong(songId) {    musicStore.removeRecentSong(songId);
 
     try {
       await musicStorage.saveMusicData(
@@ -141,7 +140,6 @@ export function useMusicActions() {
   async function removeSong(id) {
     const song = songs.value.find((item) => item.id === id);
     if (!song) return;
-
     if (currentSong.value?.id === id) {
       audioService.stop();
       playerStore.resetPlayer();
@@ -178,11 +176,52 @@ export function useMusicActions() {
     toast.success("已删除歌曲");
   }
 
+  // 清除所有歌曲：曲库、收藏、最近播放、队列一起清空；
+  // 歌单本身保留（名称还在），但里面的歌曲会被清掉，否则会指向不存在的歌
+  async function clearAllSongs() {
+    const confirmed = await confirm({
+      title: "清除所有歌曲",
+      message:
+        "将删除曲库里的全部歌曲，收藏、最近播放和播放队列会同步清空。歌单本身保留，但其中的歌曲会被移除。此操作无法恢复。",
+      confirmText: "全部清除",
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      audioService.stop();
+      playerStore.resetPlayer();
+      releaseAllAudioUrls();
+
+      await musicStorage.clearAll();
+
+      const emptiedPlaylists = playlistStore.playlists.map((playlist) => ({
+        ...playlist,
+        songIds: [],
+      }));
+
+      for (const playlist of emptiedPlaylists) {
+        await playlistStorage.savePlaylist(playlist);
+      }
+
+      playlistStore.setPlaylists(emptiedPlaylists);
+      musicStore.setSongs([]);
+      musicStore.setFavorites([]);
+      musicStore.setRecentSongs([]);
+
+      toast.success("已清除所有歌曲");
+    } catch (error) {
+      console.error("清除歌曲失败：", error);
+      toast.error("清除失败，请重试");
+    }
+  }
+
   return {
     importSongs,
     toggleFavorite,
     clearRecentSongs,
     removeRecentSong,
     removeSong,
+    clearAllSongs,
   };
 }

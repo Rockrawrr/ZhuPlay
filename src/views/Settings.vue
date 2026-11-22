@@ -10,6 +10,7 @@ import { usePlaylistStore } from "@/stores/playlist";
 import { usePlayerStore } from "@/stores/player";
 import { getMusicStorage, getPlaylistStorage } from "@/app/services";
 import { useMusicActions } from "@/composables/useMusicActions";
+import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
 import { formatBytes } from "@/utils/format";
@@ -22,7 +23,8 @@ const playerStore = usePlayerStore();
 const musicStorage = getMusicStorage();
 const playlistStorage = getPlaylistStorage();
 
-const { clearRecentSongs } = useMusicActions();
+const { clearRecentSongs, clearAllSongs } = useMusicActions();
+const { clearAllPlaylists } = usePlaylistActions();
 const toast = useToast();
 const { confirm } = useConfirm();
 
@@ -75,6 +77,15 @@ function handleClearQueue() {
 
   playerStore.clearQueue();
   toast.success("播放队列已清空");
+}
+
+// 清除所有歌曲 / 歌单：二次确认与落库都在对应 composable 里
+function handleClearSongs() {
+  clearAllSongs();
+}
+
+function handleClearPlaylists() {
+  clearAllPlaylists();
 }
 
 // 清空全部数据：删除歌曲、收藏、歌单与播放记录，然后刷新
@@ -149,6 +160,28 @@ async function handleClearAll() {
             <span>当前队列会变空，正在播放的歌曲不受影响</span>
           </div>
           <button class="ghost-button" @click="handleClearQueue">清空</button>
+        </div>
+
+        <div class="action-row danger">
+          <div class="action-text">
+            <strong>清除所有歌曲</strong>
+            <span>
+              删除曲库全部歌曲，收藏、最近播放与队列同步清空；歌单保留但会变空
+            </span>
+          </div>
+          <button class="ghost-button danger" @click="handleClearSongs">
+            清除
+          </button>
+        </div>
+
+        <div class="action-row danger">
+          <div class="action-text">
+            <strong>清除所有歌单</strong>
+            <span>删除全部歌单，曲库歌曲与收藏不受影响</span>
+          </div>
+          <button class="ghost-button danger" @click="handleClearPlaylists">
+            清除
+          </button>
         </div>
 
         <div class="action-row danger">
