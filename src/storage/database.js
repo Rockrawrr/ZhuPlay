@@ -2,7 +2,9 @@
 const DB_NAME = "ZhuPlayDB";
 
 // 数据库版本
-const DB_VERSION = 1;
+// v1：songs / musicData
+// v2：新增 playlists（歌单）
+const DB_VERSION = 2;
 
 // 数据库连接缓存（Promise 单例）
 let _dbPromise = null;
@@ -32,6 +34,13 @@ export function openDatabase() {
       if (!db.objectStoreNames.contains("musicData")) {
         db.createObjectStore("musicData", {
           keyPath: "key",
+        });
+      }
+
+      // 创建歌单仓库（v2 起）
+      if (!db.objectStoreNames.contains("playlists")) {
+        db.createObjectStore("playlists", {
+          keyPath: "id",
         });
       }
     };

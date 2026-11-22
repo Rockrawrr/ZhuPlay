@@ -2,14 +2,17 @@
 import { storeToRefs } from "pinia";
 import { createSong, releaseSong } from "@/services/musicService";
 import { parseMusicMetadata } from "@/services/metadataService";
-import { getMusicStorage, getAudioService } from "@/app/services";
+import { getMusicStorage, getAudioService, getPlaylistStorage } from "@/app/services";
 import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";
+import { usePlaylistStore } from "@/stores/playlist";
 
 export function useMusicActions() {
   const musicStore = useMusicStore();
   const playerStore = usePlayerStore();
+  const playlistStore = usePlaylistStore();
   const musicStorage = getMusicStorage();
+  const playlistStorage = getPlaylistStorage();
   const audioService = getAudioService();
 
   const { songs } = storeToRefs(musicStore);
@@ -78,6 +81,17 @@ export function useMusicActions() {
     await musicStorage.saveMusicData("favorites", [
       ...musicStore.favoriteSongs,
     ]);
+
+    // 从所有歌单里移除这首歌，避免歌单里残留已删除的歌
+    const changedPlaylists = playlistStore.removeSongFromAll(id);
+    for (const playlist of changedPlaylists) {
+      try {
+        await playlistStorage.savePlaylist(playlist);
+      } catch (error) {
+        console.error("歌单更新失败：", error);
+      }
+    }
+
     releaseSong(song);
   }
 
