@@ -112,3 +112,34 @@ npm run dev     # 开发
 npm run build   # 构建
 npm run preview # 预览构建产物
 ```
+
+## 桌面端（Electron）
+
+```bash
+# 1) 先起开发服务器
+npm run dev
+
+# 2) 另开一个终端，以桌面窗口加载 dev server（保留热更新）
+npm run electron:dev
+
+# 3) 打免安装包（产物在 release/win-unpacked/ZhuPlay.exe，用于快速验证）
+npm run electron:pack
+
+# 4) 打 Windows 安装包（产物在 release/ZhuPlay-x.y.z-setup.exe）
+npm run electron:build
+```
+
+Electron 相关的三处设计：
+
+- **自定义协议 `app://`**：生产环境不用 `file://`。`file://` 属于不透明来源，IndexedDB 行为不可靠，而歌曲、歌单、封面全部存在 IndexedDB 里
+- **主进程用 `.cjs`**：项目 `package.json` 是 `"type": "module"`，主进程保持 CommonJS 才能用 `require`
+- **preload 只暴露只读信息**：`window.zhuplayDesktop` 目前只有 `isDesktop` / `platform` / `versions`，后续「在文件夹中显示」等能力在这里加 IPC 包装
+
+首次安装依赖如果 Electron 二进制下载失败，可指定镜像：
+
+```powershell
+$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
+$env:ELECTRON_BUILDER_BINARIES_MIRROR="https://npmmirror.com/mirrors/electron-builder-binaries/"
+node node_modules/electron/install.js
+```
+

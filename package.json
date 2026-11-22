@@ -2,11 +2,17 @@
   "name": "zhuplay",
   "version": "0.4.1",
   "private": true,
+  "description": "ZhuPlay - 本地音乐播放器（Web / 桌面端）",
+  "author": "Rockrawrr",
+  "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron:dev": "electron .",
+    "electron:pack": "vite build && electron-builder --dir",
+    "electron:build": "vite build && electron-builder"
   },
   "dependencies": {
     "@lucide/vue": "^1.75.0",
@@ -19,6 +25,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.8",
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0",
     "vite": "^8.2.2",
     "vite-plugin-vue-devtools": "^8.2.1"
   },

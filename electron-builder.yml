@@ -1,0 +1,35 @@
+# electron-builder 打包配置
+appId: com.zhuplay.desktop
+productName: ZhuPlay
+
+directories:
+  output: release
+  buildResources: build
+
+# 只打包运行必需的文件：构建产物 + 主进程 + 清单
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+
+asar: true
+compression: normal
+
+# 项目没有原生依赖，跳过 rebuild 更快
+npmRebuild: false
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: ${productName}-${version}-setup.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ZhuPlay
+  deleteAppDataOnUninstall: false
