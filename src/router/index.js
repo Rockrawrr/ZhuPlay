@@ -20,7 +20,11 @@ export const routes = [
   { path: "/library", name: "library", component: Library },
   { path: "/favorites", name: "favorites", component: Favorites },
   { path: "/recent-played", name: "recent-played", component: RecentPlayed },
-  { path: "/recent-imported", name: "recent-imported", component: RecentImported },
+  {
+    path: "/recent-imported",
+    name: "recent-imported",
+    component: RecentImported,
+  },
   // 歌单详情用可选参数：/playlists 是列表，/playlists/xxx 是详情
   { path: "/playlists/:id?", name: "playlists", component: Playlists },
   { path: "/search", name: "search", component: Search },

@@ -90,7 +90,6 @@ function handleCycleRepeat() {
       <button
         class="player-icon queue-button"
         :class="{ active: showQueue }"
-        title="播放队列"
         @click="showQueue = !showQueue"
       >
         <ListMusic :size="19" />
