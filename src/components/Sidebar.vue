@@ -16,10 +16,15 @@ import {
 import { useNavigation } from "@/composables/useNavigation";
 import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useConfirm } from "@/composables/useConfirm";
+import { usePlaylistStore } from "@/stores/playlist";
+import { storeToRefs } from "pinia";
 
-const { currentPage, navigateTo } = useNavigation();
+const { currentPage, params, navigateTo } = useNavigation();
 const { createPlaylist } = usePlaylistActions();
 const { prompt } = useConfirm();
+
+// 侧边栏「我的音乐库」下方直接列出已创建的歌单
+const { playlists } = storeToRefs(usePlaylistStore());
 
 // 侧边栏「+」：直接建歌单并跳到该歌单详情
 async function handleCreatePlaylist() {
@@ -38,12 +43,20 @@ async function handleCreatePlaylist() {
 
 <template>
   <aside class="sidebar">
-    <div class="brand">
+    <div
+      class="brand"
+      role="button"
+      tabindex="0"
+      title="返回首页"
+      @click="navigateTo('home')"
+      @keydown.enter="navigateTo('home')"
+    >
       <Music2 :size="28" />
       <span>竹</span>
     </div>
 
-    <nav class="nav-menu">
+    <div class="sidebar-scroll">
+      <nav class="nav-menu">
       <a
         class="nav-item"
         :class="{ active: currentPage === 'home' }"
@@ -113,7 +126,26 @@ async function handleCreatePlaylist() {
       >
         <ListMusic :size="21" /><span>我的歌单</span>
       </a>
+
+      <!-- 已创建的歌单：点击直接进入对应歌单 -->
+      <div v-if="playlists.length > 0" class="playlist-nav">
+        <a
+          v-for="playlist in playlists"
+          :key="playlist.id"
+          class="playlist-item"
+          :class="{
+            active: currentPage === 'playlists' && params.id === playlist.id,
+          }"
+          href="#"
+          :title="playlist.name"
+          @click.prevent="navigateTo('playlists', { id: playlist.id })"
+        >
+          <span class="playlist-name">{{ playlist.name }}</span>
+          <span class="playlist-count">{{ playlist.songIds.length }}</span>
+        </a>
+      </div>
     </div>
+  </div>
 
     <!-- 底部：设置入口 -->
     <div class="sidebar-footer">
@@ -140,7 +172,34 @@ async function handleCreatePlaylist() {
   background: #121212;
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  /* 窗口变矮时，中间导航区自己滚动，品牌与设置保持可见 */
+  overflow: hidden;
+}
+
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   gap: 32px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 给滚动条留一点空间，避免遮住文字 */
+  padding-right: 2px;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
 }
 
 .brand {
@@ -151,6 +210,19 @@ async function handleCreatePlaylist() {
   color: #1ed760;
   font-size: 23px;
   font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s ease;
+}
+
+.brand:hover {
+  opacity: 0.8;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: 6px;
 }
 
 .nav-menu,
@@ -162,6 +234,50 @@ async function handleCreatePlaylist() {
 
 .sidebar-footer {
   margin-top: auto;
+}
+
+/* 已创建的歌单列表（跟随中间区域一起滚动） */
+.playlist-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.playlist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px 7px 12px;
+  border-radius: 6px;
+  color: #a3a3a3;
+  font-size: 13px;
+  text-decoration: none;
+  transition: 0.15s ease;
+}
+
+.playlist-item:hover {
+  background: #1f1f1f;
+  color: #fff;
+}
+
+.playlist-item.active {
+  background: #242424;
+  color: #fff;
+}
+
+.playlist-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-count {
+  flex-shrink: 0;
+  color: #777;
+  font-size: 11px;
 }
 
 .nav-item {
@@ -251,6 +367,12 @@ async function handleCreatePlaylist() {
     align-items: center;
   }
 
+  /* 图标栏模式下，滚动区域也要撑满宽度 */
+  .sidebar-scroll {
+    width: 100%;
+    align-items: center;
+  }
+
   .nav-item {
     width: 100%;
     justify-content: center;
@@ -267,6 +389,11 @@ async function handleCreatePlaylist() {
     justify-content: center;
     padding: 0;
     margin-bottom: 0;
+  }
+
+  /* 手机端侧栏只剩图标，隐藏歌单列表 */
+  .playlist-nav {
+    display: none;
   }
 
   .library-title {
