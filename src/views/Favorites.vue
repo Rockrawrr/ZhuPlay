@@ -9,6 +9,7 @@ import { useNavigation } from "@/composables/useNavigation";
 import { useSongMenu } from "@/composables/useSongMenu";
 import EmptyState from "@/components/common/EmptyState.vue";
 import SongRow from "@/components/common/SongRow.vue";
+import VirtualList from "@/components/common/VirtualList.vue";
 
 const musicStore = useMusicStore();
 const { favoriteSongsList } = storeToRefs(musicStore);
@@ -38,7 +39,7 @@ function handleSongMenu(event, song) {
 </script>
 
 <template>
-  <section class="page-shell">
+  <section class="page-shell favorites-page">
     <div class="toolbar">
       <button
         class="back-button"
@@ -82,17 +83,19 @@ function handleSongMenu(event, song) {
     </EmptyState>
 
     <div v-else class="song-list">
-      <SongRow
-        v-for="(song, index) in favoriteSongsList"
-        :key="song.id"
-        :song="song"
-        :index="index"
-        removable
-        remove-label="取消喜欢"
-        @play="playFrom(song)"
-        @remove="toggleFavorite(song.id)"
-        @contextmenu.prevent="handleSongMenu($event, song)"
-      />
+      <VirtualList :items="favoriteSongsList" :item-height="60">
+        <template #default="{ item: song, index }">
+          <SongRow
+            :song="song"
+            :index="index"
+            removable
+            remove-label="取消喜欢"
+            @play="playFrom(song)"
+            @remove="toggleFavorite(song.id)"
+            @contextmenu.prevent="handleSongMenu($event, song)"
+          />
+        </template>
+      </VirtualList>
     </div>
   </section>
 </template>
@@ -148,10 +151,16 @@ function handleSongMenu(event, song) {
   font-size: 12px;
 }
 
-.song-list {
+/* 页面改为纵向 flex：横幅固定，列表自己滚动（供虚拟列表使用） */
+.favorites-page {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  overflow: hidden;
+}
+
+.song-list {
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 700px) {

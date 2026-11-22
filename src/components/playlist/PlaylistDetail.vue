@@ -12,6 +12,7 @@ import {
 } from "lucide-vue-next";
 import EmptyState from "@/components/common/EmptyState.vue";
 import SongRow from "@/components/common/SongRow.vue";
+import VirtualList from "@/components/common/VirtualList.vue";
 import { useSongMenu } from "@/composables/useSongMenu";
 import { formatDate } from "@/utils/format";
 
@@ -50,7 +51,7 @@ function handleSongMenu(event, song) {
 </script>
 
 <template>
-  <section class="page-shell">
+  <section class="page-shell playlist-detail-page">
     <div class="detail-toolbar">
       <button class="back-button" title="返回歌单列表" @click="emit('back')">
         <ArrowLeft :size="19" />
@@ -106,17 +107,21 @@ function handleSongMenu(event, song) {
         </button>
       </div>
 
-      <SongRow
-        v-for="(song, index) in songs"
-        :key="song.id"
-        :song="song"
-        :index="index"
-        removable
-        remove-label="从歌单移除"
-        @play="emit('play', song)"
-        @remove="emit('remove-song', song.id)"
-        @contextmenu.prevent="handleSongMenu($event, song)"
-      />
+      <div class="song-scroll">
+        <VirtualList :items="songs" :item-height="60">
+          <template #default="{ item: song, index }">
+            <SongRow
+              :song="song"
+              :index="index"
+              removable
+              remove-label="从歌单移除"
+              @play="emit('play', song)"
+              @remove="emit('remove-song', song.id)"
+              @contextmenu.prevent="handleSongMenu($event, song)"
+            />
+          </template>
+        </VirtualList>
+      </div>
     </div>
   </section>
 </template>
@@ -196,6 +201,25 @@ function handleSongMenu(event, song) {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 10px;
+}
+
+/* 页面纵向 flex：头部固定，歌曲列表自己滚动（供虚拟列表使用） */
+.playlist-detail-page {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.song-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.song-scroll {
+  flex: 1;
+  min-height: 0;
 }
 
 .song-count {

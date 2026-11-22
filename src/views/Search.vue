@@ -2,7 +2,7 @@
 // src/views/Search.vue
 // 全局搜索：在曲库与歌单里按关键字过滤
 // 点歌曲会用「当前搜索结果」作为播放队列，所以下一首仍在结果里
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { ArrowLeft, ListMusic, Music2, Search, X } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";
@@ -12,6 +12,7 @@ import { useNavigation } from "@/composables/useNavigation";
 import { useSongMenu } from "@/composables/useSongMenu";
 import EmptyState from "@/components/common/EmptyState.vue";
 import SongRow from "@/components/common/SongRow.vue";
+import VirtualList from "@/components/common/VirtualList.vue";
 
 const musicStore = useMusicStore();
 const playlistStore = usePlaylistStore();
@@ -22,8 +23,21 @@ const { playSong } = useAudioPlayer();
 const { canGoBack, goBack, navigateTo } = useNavigation();
 const { openSongMenu } = useSongMenu();
 
+const keywordInputValue = ref("");
 const keyword = ref("");
 const keywordInput = ref(null);
+
+// 输入防抖：上万首时每次按键都全量过滤会卡，停顿 220ms 后再搜
+let debounceTimer = null;
+
+watch(keywordInputValue, (value) => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    keyword.value = value;
+  }, 220);
+});
+
+onUnmounted(() => clearTimeout(debounceTimer));
 
 // 动态插入的输入框 autofocus 不一定生效，这里手动聚焦
 onMounted(() => keywordInput.value?.focus());
@@ -67,12 +81,14 @@ function handleSongMenu(event, song) {
 }
 
 function clearKeyword() {
+  clearTimeout(debounceTimer);
+  keywordInputValue.value = "";
   keyword.value = "";
 }
 </script>
 
 <template>
-  <section class="page-shell">
+  <section class="page-shell search-page">
     <header class="search-header">
       <button
         class="back-button"
@@ -87,14 +103,14 @@ function clearKeyword() {
         <Search :size="17" />
         <input
           ref="keywordInput"
-          v-model="keyword"
+          v-model="keywordInputValue"
           type="text"
           placeholder="搜索歌曲、歌手、专辑或歌单"
           aria-label="搜索"
           autofocus
         />
         <button
-          v-if="keyword"
+          v-if="keywordInputValue"
           class="clear-button"
           title="清空"
           @click="clearKeyword"
@@ -105,26 +121,25 @@ function clearKeyword() {
     </header>
 
     <!-- 未输入 -->
-    <EmptyState
-      v-if="!normalized"
-      title="搜索你的音乐"
-      description="输入歌名、歌手、专辑或歌单名称"
-    >
-      <template #icon><Search :size="22" /></template>
-    </EmptyState>
+    <div v-if="!normalized" class="search-empty">
+      <EmptyState title="搜索你的音乐" description="输入歌名、歌手、专辑或歌单名称">
+        <template #icon><Search :size="22" /></template>
+      </EmptyState>
+    </div>
 
     <!-- 无结果 -->
-    <EmptyState
+    <div
       v-else-if="matchedSongs.length === 0 && matchedPlaylists.length === 0"
-      title="没有找到相关内容"
-      description="试试其它关键字，或先去音乐库导入歌曲"
+      class="search-empty"
     >
-      <template #icon><Music2 :size="22" /></template>
-    </EmptyState>
+      <EmptyState title="没有找到相关内容" description="试试其它关键字，或先去音乐库导入歌曲">
+        <template #icon><Music2 :size="22" /></template>
+      </EmptyState>
+    </div>
 
-    <template v-else>
+    <div v-else class="search-results">
       <!-- 歌单结果 -->
-      <section v-if="matchedPlaylists.length > 0" class="result-section">
+      <section v-if="matchedPlaylists.length > 0" class="result-section playlist-section">
         <h2 class="result-title">歌单 · {{ matchedPlaylists.length }}</h2>
 
         <div class="playlist-results">
@@ -143,20 +158,24 @@ function clearKeyword() {
         </div>
       </section>
 
-      <!-- 歌曲结果 -->
-      <section v-if="matchedSongs.length > 0" class="result-section">
+      <!-- 歌曲结果：搜索结果可能有上千条，用虚拟列表 -->
+      <section v-if="matchedSongs.length > 0" class="result-section song-section">
         <h2 class="result-title">歌曲 · {{ matchedSongs.length }}</h2>
 
-        <SongRow
-          v-for="(song, index) in matchedSongs"
-          :key="song.id"
-          :song="song"
-          :index="index"
-          @play="playFrom(song)"
-          @contextmenu.prevent="handleSongMenu($event, song)"
-        />
+        <div class="song-scroll">
+          <VirtualList :items="matchedSongs" :item-height="60">
+            <template #default="{ item: song, index }">
+              <SongRow
+                :song="song"
+                :index="index"
+                @play="playFrom(song)"
+                @contextmenu.prevent="handleSongMenu($event, song)"
+              />
+            </template>
+          </VirtualList>
+        </div>
       </section>
-    </template>
+    </div>
   </section>
 </template>
 
@@ -211,8 +230,47 @@ function clearKeyword() {
   color: #fff;
 }
 
+/* 页面纵向 flex：搜索框固定，结果区自己滚动（供虚拟列表使用） */
+.search-page {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.search-empty {
+  flex: 1;
+  min-height: 0;
+}
+
+.search-results {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .result-section {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
+}
+
+/* 歌单结果固定高度，剩下的空间全给歌曲列表 */
+.playlist-section {
+  flex-shrink: 0;
+  max-height: 34vh;
+  overflow-y: auto;
+}
+
+.song-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.song-scroll {
+  flex: 1;
+  min-height: 0;
 }
 
 .result-title {
