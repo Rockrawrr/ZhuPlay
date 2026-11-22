@@ -4,11 +4,13 @@
 // 点歌曲会用「当前搜索结果」作为播放队列，所以下一首仍在结果里
 import { computed, onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { ArrowLeft, ListMusic, Music2, Play, Search, X } from "lucide-vue-next";
+import { ArrowLeft, ListMusic, Music2, Search, X } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";
 import { usePlaylistStore } from "@/stores/playlist";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useNavigation } from "@/composables/useNavigation";
+import EmptyState from "@/components/EmptyState.vue";
+import SongRow from "@/components/SongRow.vue";
 
 const musicStore = useMusicStore();
 const playlistStore = usePlaylistStore();
@@ -48,8 +50,7 @@ const matchedPlaylists = computed(() => {
 });
 
 function openPlaylist(playlist) {
-  playlistStore.setCurrentPlaylist(playlist.id);
-  navigateTo("playlists");
+  navigateTo("playlists", { id: playlist.id });
 }
 
 function playFrom(song) {
@@ -95,18 +96,22 @@ function clearKeyword() {
     </header>
 
     <!-- 未输入 -->
-    <div v-if="!normalized" class="empty-state">
-      <Search :size="44" />
-      <h3>搜索你的音乐</h3>
-      <p>输入歌名、歌手、专辑或歌单名称</p>
-    </div>
+    <EmptyState
+      v-if="!normalized"
+      title="搜索你的音乐"
+      description="输入歌名、歌手、专辑或歌单名称"
+    >
+      <template #icon><Search :size="22" /></template>
+    </EmptyState>
 
     <!-- 无结果 -->
-    <div v-else-if="matchedSongs.length === 0 && matchedPlaylists.length === 0" class="empty-state">
-      <Music2 :size="42" />
-      <h3>没有找到相关内容</h3>
-      <p>试试其它关键字，或先去音乐库导入歌曲</p>
-    </div>
+    <EmptyState
+      v-else-if="matchedSongs.length === 0 && matchedPlaylists.length === 0"
+      title="没有找到相关内容"
+      description="试试其它关键字，或先去音乐库导入歌曲"
+    >
+      <template #icon><Music2 :size="22" /></template>
+    </EmptyState>
 
     <template v-else>
       <!-- 歌单结果 -->
@@ -133,30 +138,13 @@ function clearKeyword() {
       <section v-if="matchedSongs.length > 0" class="result-section">
         <h2 class="result-title">歌曲 · {{ matchedSongs.length }}</h2>
 
-        <div v-for="(song, index) in matchedSongs" :key="song.id" class="song-item">
-          <span class="song-index">{{ index + 1 }}</span>
-
-          <div class="song-cover" @click="playFrom(song)">
-            <img
-              v-if="song.coverUrl"
-              :src="song.coverUrl"
-              :alt="song.album || song.name"
-            />
-            <Music2 v-else :size="16" />
-          </div>
-
-          <div class="song-info" @click="playFrom(song)">
-            <div class="song-name">{{ song.name }}</div>
-            <div class="song-artist">
-              {{ song.artist || song.filename }}
-              <template v-if="song.album"> · {{ song.album }}</template>
-            </div>
-          </div>
-
-          <button class="icon-action" title="播放" @click="playFrom(song)">
-            <Play :size="16" />
-          </button>
-        </div>
+        <SongRow
+          v-for="(song, index) in matchedSongs"
+          :key="song.id"
+          :song="song"
+          :index="index"
+          @play="playFrom(song)"
+        />
       </section>
     </template>
   </section>
@@ -275,65 +263,5 @@ function clearKeyword() {
 .result-meta {
   color: #999;
   font-size: 11px;
-}
-
-.song-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 12px;
-  border-radius: 6px;
-}
-
-.song-item:hover {
-  background: #232323;
-}
-
-.song-index {
-  width: 20px;
-  color: #999;
-  text-align: center;
-  font-size: 12px;
-}
-
-.song-cover {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 5px;
-  background: #282828;
-  color: var(--color-primary);
-  cursor: pointer;
-}
-
-.song-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.song-info {
-  flex: 1;
-  min-width: 0;
-  cursor: pointer;
-}
-
-.song-name {
-  font-size: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.song-artist {
-  margin-top: 4px;
-  color: #999;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 </style>

@@ -9,8 +9,9 @@ import {
   Play,
   Plus,
   Trash2,
-  X,
 } from "lucide-vue-next";
+import EmptyState from "@/components/EmptyState.vue";
+import SongRow from "@/components/SongRow.vue";
 
 defineProps({
   playlist: {
@@ -33,14 +34,6 @@ const emit = defineEmits([
   "delete",
   "add-songs",
 ]);
-
-function formatTime(seconds) {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "--:--";
-
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
 
 function formatDate(timestamp) {
   if (!timestamp) return "";
@@ -87,14 +80,16 @@ function formatDate(timestamp) {
       </div>
     </header>
 
-    <div v-if="songs.length === 0" class="empty-state">
-      <Music2 :size="42" />
-      <h3>歌单里还没有歌曲</h3>
-      <p>从音乐库里挑几首歌加进来吧</p>
+    <EmptyState
+      v-if="songs.length === 0"
+      title="歌单里还没有歌曲"
+      description="从音乐库里挑几首歌加进来吧"
+    >
+      <template #icon><Music2 :size="22" /></template>
       <button class="primary-button" @click="emit('add-songs')">
         <Plus :size="18" /> 添加歌曲
       </button>
-    </div>
+    </EmptyState>
 
     <div v-else class="song-list">
       <div class="list-toolbar">
@@ -104,33 +99,16 @@ function formatDate(timestamp) {
         </button>
       </div>
 
-      <div v-for="(song, index) in songs" :key="song.id" class="song-item">
-        <span class="song-index">{{ index + 1 }}</span>
-
-        <div class="song-cover" @click="emit('play', song)">
-          <img
-            v-if="song.coverUrl"
-            :src="song.coverUrl"
-            :alt="song.album || song.name"
-          />
-          <Music2 v-else :size="16" />
-        </div>
-
-        <div class="song-info" @click="emit('play', song)">
-          <div class="song-name">{{ song.name }}</div>
-          <div class="song-artist">{{ song.artist || song.filename }}</div>
-        </div>
-
-        <span class="song-duration">{{ formatTime(song.duration) }}</span>
-
-        <button
-          class="icon-action danger"
-          title="从歌单移除"
-          @click="emit('remove-song', song.id)"
-        >
-          <X :size="17" />
-        </button>
-      </div>
+      <SongRow
+        v-for="(song, index) in songs"
+        :key="song.id"
+        :song="song"
+        :index="index"
+        removable
+        remove-label="从歌单移除"
+        @play="emit('play', song)"
+        @remove="emit('remove-song', song.id)"
+      />
     </div>
   </section>
 </template>
@@ -217,73 +195,6 @@ function formatDate(timestamp) {
   font-size: 12px;
 }
 
-.song-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 12px;
-  border-radius: 6px;
-}
-
-.song-item:hover {
-  background: #232323;
-}
-
-.song-index {
-  width: 20px;
-  color: #999;
-  text-align: center;
-  font-size: 12px;
-}
-
-.song-cover {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 5px;
-  background: #282828;
-  color: var(--color-primary);
-  cursor: pointer;
-}
-
-.song-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.song-info {
-  flex: 1;
-  min-width: 0;
-  cursor: pointer;
-}
-
-.song-name {
-  font-size: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.song-artist {
-  margin-top: 4px;
-  color: #999;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.song-duration {
-  width: 46px;
-  color: #999;
-  font-size: 12px;
-  text-align: right;
-}
-
 @media (max-width: 700px) {
   .playlist-header {
     flex-direction: column;
@@ -300,10 +211,6 @@ function formatDate(timestamp) {
 
   .playlist-heading h2 {
     font-size: 22px;
-  }
-
-  .song-duration {
-    display: none;
   }
 }
 </style>

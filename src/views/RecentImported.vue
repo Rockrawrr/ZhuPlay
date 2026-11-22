@@ -2,302 +2,73 @@
 // 最近导入：按 importedAt 倒序展示曲库，点击在“最近导入顺序”内播放
 import { computed } from "vue";
 import { storeToRefs } from "pinia";
-import { Library, Music2, Play, ArrowLeft } from "lucide-vue-next";
+import { Upload } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useNavigation } from "@/composables/useNavigation";
+import PageHeader from "@/components/PageHeader.vue";
+import EmptyState from "@/components/EmptyState.vue";
+import SongRow from "@/components/SongRow.vue";
 
 const musicStore = useMusicStore();
 const { songs } = storeToRefs(musicStore);
 
 const { playSong } = useAudioPlayer();
-const { canGoBack, goBack } = useNavigation();
+const { navigateTo } = useNavigation();
 
-// 按导入时间倒序，对应原 App.vue 里 sortedImportedSongs
+// 按导入时间倒序
 const sortedSongs = computed(() =>
   [...songs.value].sort((a, b) => (b.importedAt ?? 0) - (a.importedAt ?? 0)),
 );
+
+function playFrom(song) {
+  playSong(song, sortedSongs.value);
+}
 </script>
 
 <template>
-  <main class="recent-imported">
-    <header class="page-header">
-      <div class="page-heading">
+  <section class="page-shell">
+    <PageHeader
+      title="最近导入"
+      :subtitle="`最近添加到音乐库的 ${sortedSongs.length} 首歌`"
+    >
+      <template #actions>
         <button
-          class="back-button"
-          :disabled="!canGoBack"
-          title="返回上一页"
-          @click="goBack"
+          v-if="sortedSongs.length > 0"
+          class="ghost-button"
+          @click="navigateTo('library')"
         >
-          <ArrowLeft :size="19" />
+          <Upload :size="16" /> 继续导入
         </button>
+      </template>
+    </PageHeader>
 
-        <div>
-          <h2>最近导入</h2>
-          <p>查看你最近添加到音乐库的音乐</p>
-        </div>
-      </div>
+    <EmptyState
+      v-if="sortedSongs.length === 0"
+      title="还没有导入音乐"
+      description="导入电脑里的音频文件，它们会按导入顺序出现在这里"
+    >
+      <button class="primary-button" @click="navigateTo('library')">
+        <Upload :size="18" /> 去导入音乐
+      </button>
+    </EmptyState>
 
-      <div class="page-actions">
-        <span class="song-count">共 {{ sortedSongs.length }} 首歌曲</span>
-      </div>
-    </header>
-
-    <div v-if="sortedSongs.length > 0" class="song-list">
-      <button
+    <div v-else class="song-list">
+      <SongRow
         v-for="(song, index) in sortedSongs"
         :key="song.id"
-        class="song-item"
-        @click="playSong(song, sortedSongs)"
-      >
-        <span class="song-index">{{ index + 1 }}</span>
-
-        <div class="song-cover">
-          <img
-            v-if="song.coverUrl"
-            :src="song.coverUrl"
-            :alt="song.album || song.name"
-          />
-          <Music2 v-else :size="20" />
-        </div>
-
-        <div class="song-info">
-          <div class="song-name">{{ song.name }}</div>
-          <div class="song-artist">
-            {{ song.artist || song.filename }}
-          </div>
-        </div>
-
-        <span class="song-format">
-          {{ song.format?.toUpperCase() }}
-        </span>
-
-        <Play :size="18" class="play-icon" />
-      </button>
+        :song="song"
+        :index="index"
+        @play="playFrom(song)"
+      />
     </div>
-
-    <div v-else class="empty-state">
-      <Library :size="48" />
-      <h3>音乐库还是空的</h3>
-      <p>导入一些音乐，它们就会出现在这里。</p>
-    </div>
-  </main>
+  </section>
 </template>
 
 <style scoped>
-.recent-imported {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 28px 32px;
-  color: #fff;
-}
-
-/* 页面顶部 */
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 28px;
-  flex-shrink: 0;
-}
-
-.page-heading {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.page-heading h2 {
-  margin: 0 0 8px;
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.page-heading p {
-  margin: 0;
-  color: #999;
-  font-size: 14px;
-}
-
-/* 返回按钮 */
-.back-button {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 50%;
-  background: #282828;
-  color: #b3b3b3;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.back-button:hover:not(:disabled) {
-  background: #383838;
-  color: #fff;
-}
-
-.back-button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-/* 右侧信息 */
-.page-actions {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.song-count {
-  color: #999;
-  font-size: 13px;
-}
-
-/* 歌曲列表 */
 .song-list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 8px;
-}
-
-.song-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.song-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.song-list::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 4px;
-}
-
-.song-list::-webkit-scrollbar-thumb:hover {
-  background: #666;
-}
-
-/* 单首歌曲 */
-.song-item {
-  width: 100%;
-  min-height: 64px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 9px 12px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: #fff;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.song-item:hover {
-  background: #282828;
-}
-
-.song-index {
-  width: 20px;
-  flex-shrink: 0;
-  color: #999;
-  text-align: center;
-  font-size: 13px;
-}
-
-.song-cover {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 5px;
-  background: linear-gradient(135deg, #365f50, #17241e);
-  color: #1ed760;
-}
-
-.song-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.song-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.song-name {
-  overflow: hidden;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.song-artist {
-  overflow: hidden;
-  margin-top: 5px;
-  color: #999;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.song-format {
-  color: #999;
-  font-size: 11px;
-  flex-shrink: 0;
-}
-
-.play-icon {
-  flex-shrink: 0;
-  color: #1ed760;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.song-item:hover .play-icon {
-  opacity: 1;
-}
-
-/* 空状态 */
-.empty-state {
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #777;
-  text-align: center;
-  background: #181818;
-  border-radius: 12px;
-}
-
-.empty-state h3 {
-  margin: 0;
-  color: #fff;
-  font-size: 18px;
-}
-
-.empty-state p {
-  margin: 0;
-  color: #999;
-  font-size: 13px;
+  gap: 2px;
 }
 </style>

@@ -7,6 +7,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
 import App from './App.vue'
+import { router } from './router'
 
 // 引入 Bootstrap 样式
 import 'bootstrap/dist/css/bootstrap.min.css'
@@ -28,6 +29,9 @@ const pinia = createPinia()
 
 // 注册 Pinia
 app.use(pinia)
+
+// 注册路由（hash 模式，桌面端用 file:// 也能直接跑）
+app.use(router)
 
 // 挂载应用
 app.mount('#app')

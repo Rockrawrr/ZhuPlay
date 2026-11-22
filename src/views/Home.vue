@@ -8,6 +8,7 @@ import { useMusicStore } from "@/stores/music";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useMusicActions } from "@/composables/useMusicActions";
 import { useNavigation } from "@/composables/useNavigation";
+import EmptyState from "@/components/EmptyState.vue";
 
 const albums = [
   { id: 1, title: "最近播放", description: "继续聆听你的音乐" },
@@ -22,7 +23,7 @@ const { songs, recentSongs, recentImportedSongs, favoriteSongsList } =
 
 const { playSong } = useAudioPlayer();
 const { clearRecentSongs } = useMusicActions();
-const { canGoBack, goBack, navigateTo } = useNavigation();
+const { canGoBack, canGoForward, goBack, goForward, navigateTo } = useNavigation();
 
 // 收藏 ID 集合，供模板快速判断
 const favoriteIds = computed(
@@ -80,7 +81,7 @@ function handleQuickCardClick(id) {
           <ArrowLeft :size="19" />
         </button>
 
-        <button disabled title="前进功能暂未实现">
+        <button :disabled="!canGoForward" title="前进" @click="goForward">
           <ArrowRight :size="19" />
         </button>
       </div>
@@ -150,11 +151,14 @@ function handleQuickCardClick(id) {
         </article>
       </div>
 
-      <div v-else class="empty-state">
-        <Music2 :size="42" />
-        <p>暂无推荐歌曲</p>
-        <span>导入一些音乐，开始建立你的音乐收藏。</span>
-      </div>
+      <EmptyState
+        v-else
+        compact
+        title="暂无推荐歌曲"
+        description="导入一些音乐，开始建立你的音乐收藏"
+      >
+        <template #icon><Music2 :size="20" /></template>
+      </EmptyState>
     </section>
 
     <section id="recent-imported" class="recent-section">
@@ -185,11 +189,17 @@ function handleQuickCardClick(id) {
         </button>
       </div>
 
-      <div v-else class="empty-state">
-        <Music2 :size="42" />
-        <p>还没有导入音乐</p>
-        <span>导入一些音乐，它们就会出现在这里。</span>
-      </div>
+      <EmptyState
+        v-else
+        compact
+        title="还没有导入音乐"
+        description="导入一些音乐，它们就会出现在这里"
+      >
+        <template #icon><Music2 :size="20" /></template>
+        <button class="ghost-button" @click="navigateTo('library')">
+          去导入
+        </button>
+      </EmptyState>
     </section>
 
     <section id="recent-played" class="recent-section">
@@ -234,11 +244,14 @@ function handleQuickCardClick(id) {
         </button>
       </div>
 
-      <div v-else class="empty-state">
-        <Music2 :size="42" />
-        <p>还没有播放记录</p>
-        <span>导入你的本地音乐，开启音乐之旅。</span>
-      </div>
+      <EmptyState
+        v-else
+        compact
+        title="还没有播放记录"
+        description="播放一首歌，最近听过的音乐会出现在这里"
+      >
+        <template #icon><Clock3 :size="20" /></template>
+      </EmptyState>
     </section>
   </main>
 </template>
@@ -621,26 +634,6 @@ function handleQuickCardClick(id) {
   transform: translateX(0);
 }
 
-.empty-state {
-  min-height: 150px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #b3b3b3;
-  gap: 8px;
-}
-
-.empty-state p {
-  margin: 0;
-  color: #fff;
-  font-weight: 600;
-}
-
-.empty-state span {
-  font-size: 13px;
-}
-
 .history-buttons button:disabled {
   opacity: 0.35;
   cursor: default;
@@ -661,26 +654,26 @@ function handleQuickCardClick(id) {
     padding: 0 16px 30px;
   }
 
+  /* 手机端：快捷入口改成单列，避免卡片过窄把标题挤成两个字 */
   .quick-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .album-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  /* 手机端快捷卡片优化 */
   .quick-card {
-    height: 64px;
-    gap: 8px;
-    padding-right: 44px;
-    font-size: 12px;
+    height: 56px;
+    gap: 10px;
+    padding: 0 40px 0 8px;
+    font-size: 13px;
   }
 
   .quick-cover {
-    width: 48px;
-    min-width: 48px;
-    height: 64px;
+    width: 40px;
+    min-width: 40px;
+    height: 56px;
   }
 
   .quick-title {
@@ -697,10 +690,10 @@ function handleQuickCardClick(id) {
   }
 
   .quick-play {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     right: 6px;
-    margin-top: -15px;
+    margin-top: -14px;
   }
 
   /* 手机端首页标题优化 */

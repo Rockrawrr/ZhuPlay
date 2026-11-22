@@ -29,8 +29,11 @@ zhuplay
    ├─ components
    │  ├─ AddToPlaylistDialog.vue # 添加到歌单弹窗
    │  ├─ AppToast.vue          # 全局提示层
+   │  ├─ EmptyState.vue        # 统一空状态
+   │  ├─ PageHeader.vue        # 统一页面头部
    │  ├─ Sidebar.vue           # 侧边栏导航
-   │  ├─ SongItem.vue          # 歌曲行
+   │  ├─ SongItem.vue          # 歌曲行（音乐库，含收藏/歌单/删除）
+   │  ├─ SongRow.vue           # 歌曲行（列表通用，含播放/移除）
    │  ├─ player                # 播放器 UI
    │  │  ├─ PlayerBar.vue      # 播放条容器（持有状态）
    │  │  ├─ TrackInfo.vue      # 封面 / 歌名 / 喜欢
@@ -47,7 +50,7 @@ zhuplay
    │  ├─ useMusicActions.js    # 导入 / 收藏 / 删除
    │  ├─ usePlaylistActions.js # 歌单增删改（store + 落库）
    │  ├─ useToast.js           # 全局提示（模块级单例）
-   │  ├─ useNavigation.js      # 页面切换（内存态，待换 vue-router）
+   │  ├─ useNavigation.js      # 导航门面（vue-router 封装）
    │  └─ useVolume.js          # 音量控制与持久化
    ├─ config
    │  └─ index.js              # 常量与平台开关
@@ -55,6 +58,8 @@ zhuplay
    │  └─ AppLayout.vue         # 应用骨架
    ├─ models
    │  └─ song.js               # 歌曲数据模型
+   ├─ router
+   │  └─ index.js              # 路由表（hash 模式，桌面端 file:// 也能跑）
    ├─ services                 # 无状态业务
    │  ├─ audioService.js       # <audio> 封装
    │  ├─ metadataService.js    # 标签 / 封面解析

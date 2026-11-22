@@ -58,9 +58,10 @@ function handleInput(event) {
   width: 100px;
 }
 
-@media (max-width: 700px) {
+/* 窄屏 / 竖屏平板用系统音量，隐藏滑块但保留静音按钮 */
+@media (max-width: 900px) {
   .volume-slider {
-    width: 64px;
+    display: none;
   }
 }
 </style>

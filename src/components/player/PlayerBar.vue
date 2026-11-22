@@ -161,4 +161,34 @@ function handleCycleRepeat() {
   font-weight: 700;
   line-height: 1;
 }
+
+/* 窄屏 / 竖屏平板：信息行 + 控制行（进度条独占一行），避免播放条撑破视口 */
+@media (max-width: 900px) {
+  .music-player {
+    height: auto;
+    min-height: 92px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "info right"
+      "center center";
+    gap: 8px 12px;
+    padding: 10px 14px;
+  }
+
+  /* 子组件根元素会带上父组件的 scope id，可以直接用 grid-area 排版 */
+  .track-info {
+    grid-area: info;
+  }
+
+  .player-right {
+    grid-area: right;
+    gap: 10px;
+  }
+
+  .player-center {
+    grid-area: center;
+    width: 100%;
+    gap: 6px;
+  }
+}
 </style>

@@ -1,40 +1,15 @@
 <script setup>
-// 应用骨架：侧边栏 + 当前页 + 播放条
-// viewMap 是当前的“页面注册表”，新增页面时要在这里加一条，并在 Sidebar 加入口；
-// 接入 vue-router 后这层会被路由替换
-import { computed } from "vue";
-import { useNavigation } from "@/composables/useNavigation";
+// 应用骨架：侧边栏 + 路由出口 + 播放条
+// 页面注册已交给 src/router/index.js，这里不再维护 viewMap
 import Sidebar from "@/components/Sidebar.vue";
 import PlayerBar from "@/components/player/PlayerBar.vue";
-import Home from "@/views/Home.vue";
-import Library from "@/views/Library.vue";
-import Favorites from "@/views/Favorites.vue";
-import RecentPlayed from "@/views/RecentPlayed.vue";
-import RecentImported from "@/views/RecentImported.vue";
-import Playlists from "@/views/Playlists.vue";
-import SearchView from "@/views/Search.vue";
-import SettingsView from "@/views/Settings.vue";
-
-const viewMap = {
-  home: Home,
-  library: Library,
-  favorites: Favorites,
-  "recent-played": RecentPlayed,
-  "recent-imported": RecentImported,
-  playlists: Playlists,
-  search: SearchView,
-  settings: SettingsView,
-};
-
-const { currentPage } = useNavigation();
-const currentView = computed(() => viewMap[currentPage.value] ?? Home);
 </script>
 
 <template>
   <div class="app-layout">
     <div class="app-body">
       <Sidebar />
-      <component :is="currentView" />
+      <router-view />
     </div>
     <PlayerBar />
   </div>

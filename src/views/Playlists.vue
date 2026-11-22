@@ -5,13 +5,15 @@
 // 而 Electron 不支持 prompt，桌面封装前需要替换成自定义弹窗
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { ArrowLeft, ListMusic, Plus } from "lucide-vue-next";
+import { ListMusic, Plus } from "lucide-vue-next";
 import { usePlaylistStore } from "@/stores/playlist";
 import { useMusicStore } from "@/stores/music";
 import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useNavigation } from "@/composables/useNavigation";
 import { useToast } from "@/composables/useToast";
+import PageHeader from "@/components/PageHeader.vue";
+import EmptyState from "@/components/EmptyState.vue";
 import PlaylistCard from "@/components/playlist/PlaylistCard.vue";
 import PlaylistDetail from "@/components/playlist/PlaylistDetail.vue";
 import AddSongsPanel from "@/components/playlist/AddSongsPanel.vue";
@@ -19,7 +21,7 @@ import AddSongsPanel from "@/components/playlist/AddSongsPanel.vue";
 const playlistStore = usePlaylistStore();
 const musicStore = useMusicStore();
 
-const { playlists, currentPlaylistId } = storeToRefs(playlistStore);
+const { playlists } = storeToRefs(playlistStore);
 const { songs } = storeToRefs(musicStore);
 
 const {
@@ -30,8 +32,11 @@ const {
   removeSongFromPlaylist,
 } = usePlaylistActions();
 const { playSong } = useAudioPlayer();
-const { canGoBack, goBack } = useNavigation();
+const { params, navigateTo } = useNavigation();
 const toast = useToast();
+
+// 列表 / 详情由路由参数决定：/playlists 为列表，/playlists/:id 为详情
+const currentPlaylistId = computed(() => params.value.id ?? null);
 
 const currentPlaylist = computed(() =>
   playlistStore.playlistById(currentPlaylistId.value),
@@ -53,8 +58,8 @@ async function handleCreate() {
   if (name === null) return;
 
   const playlist = await createPlaylist(name);
-  playlistStore.setCurrentPlaylist(playlist.id);
   toast.success(`已创建「${playlist.name}」`);
+  navigateTo("playlists", { id: playlist.id });
 }
 
 async function handleRename(playlist) {
@@ -71,8 +76,12 @@ async function handleDelete(playlist) {
   );
   if (!confirmed) return;
 
+  const wasCurrent = playlist.id === currentPlaylistId.value;
   await deletePlaylist(playlist.id);
   toast.success(`已删除「${playlist.name}」`);
+
+  // 删掉的是正在查看的歌单，回到列表并清掉 URL 里的 id
+  if (wasCurrent) navigateTo("playlists");
 }
 
 // 播放整张歌单：以歌单歌曲作为播放上下文
@@ -107,41 +116,34 @@ function closeAddPanel() {
 <template>
   <!-- 歌单列表 -->
   <section v-if="!currentPlaylist" class="page-shell">
-    <header class="page-toolbar">
-      <button
-        class="back-button"
-        :disabled="!canGoBack"
-        title="返回上一页"
-        @click="goBack"
-      >
-        <ArrowLeft :size="19" />
-      </button>
+    <PageHeader
+      title="我的歌单"
+      :subtitle="`把喜欢的歌曲整理成歌单 · 共 ${playlists.length} 个`"
+    >
+      <template #actions>
+        <button class="primary-button" @click="handleCreate">
+          <Plus :size="18" /> 新建歌单
+        </button>
+      </template>
+    </PageHeader>
 
-      <div class="page-heading">
-        <h2>我的歌单</h2>
-        <p>把喜欢的歌曲整理成歌单 · 共 {{ playlists.length }} 个</p>
-      </div>
-
+    <EmptyState
+      v-if="playlists.length === 0"
+      title="还没有歌单"
+      description="创建歌单，把歌曲按心情和场景整理起来"
+    >
+      <template #icon><ListMusic :size="22" /></template>
       <button class="primary-button" @click="handleCreate">
         <Plus :size="18" /> 新建歌单
       </button>
-    </header>
-
-    <div v-if="playlists.length === 0" class="empty-state">
-      <ListMusic :size="46" />
-      <h3>还没有歌单</h3>
-      <p>创建歌单，把歌曲按心情和场景整理起来</p>
-      <button class="primary-button" @click="handleCreate">
-        <Plus :size="18" /> 新建歌单
-      </button>
-    </div>
+    </EmptyState>
 
     <div v-else class="playlist-grid">
       <PlaylistCard
         v-for="playlist in playlists"
         :key="playlist.id"
         :playlist="playlist"
-        @open="playlistStore.setCurrentPlaylist(playlist.id)"
+        @open="navigateTo('playlists', { id: playlist.id })"
         @rename="handleRename(playlist)"
         @delete="handleDelete(playlist)"
       />
@@ -153,7 +155,7 @@ function closeAddPanel() {
     v-else
     :playlist="currentPlaylist"
     :songs="currentSongs"
-    @back="playlistStore.setCurrentPlaylist(null)"
+    @back="navigateTo('playlists')"
     @play-all="playAll"
     @play="playFrom"
     @remove-song="handleRemoveSong"
@@ -174,30 +176,6 @@ function closeAddPanel() {
 </template>
 
 <style scoped>
-.page-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 28px;
-}
-
-.page-heading {
-  flex: 1;
-  min-width: 0;
-}
-
-.page-heading h2 {
-  margin: 0 0 6px;
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.page-heading p {
-  margin: 0;
-  color: #999;
-  font-size: 13px;
-}
-
 .playlist-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

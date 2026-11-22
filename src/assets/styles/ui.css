@@ -1,7 +1,7 @@
 /* ==============================
    ZhuPlay - UI Primitives
    跨页面复用的基础控件（由 main.js 全局引入）
-   约定：页面里不要重复定义 .page-shell / .primary-button / .icon-action / .empty-state
+   约定：页面里不要重复定义 .page-shell / .primary-button / .icon-action
    ============================== */
 
 /* 页面外壳：撑满内容区、自带滚动与内边距 */
@@ -113,35 +113,7 @@
   color: #ff6b6b;
 }
 
-/* 空状态占位块 */
-.empty-state {
-  min-height: 260px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 32px;
-  border-radius: 12px;
-  background: #181818;
-  color: #888;
-  text-align: center;
-}
-
-.empty-state h3 {
-  margin: 0;
-  color: #fff;
-  font-size: 17px;
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 13px;
-}
-
-.empty-state .primary-button {
-  margin-top: 8px;
-}
+/* 说明：空状态统一由 components/EmptyState.vue 提供，这里不再定义 .empty-state */
 
 @media (max-width: 700px) {
   .page-shell {

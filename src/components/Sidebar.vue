@@ -14,21 +14,18 @@ import {
   Settings,
 } from "lucide-vue-next";
 import { useNavigation } from "@/composables/useNavigation";
-import { usePlaylistStore } from "@/stores/playlist";
 import { usePlaylistActions } from "@/composables/usePlaylistActions";
 
 const { currentPage, navigateTo } = useNavigation();
-const playlistStore = usePlaylistStore();
 const { createPlaylist } = usePlaylistActions();
 
-// 侧边栏「+」：直接建歌单并跳到歌单页
+// 侧边栏「+」：直接建歌单并跳到该歌单详情
 async function handleCreatePlaylist() {
   const name = window.prompt("新歌单名称", "新建歌单");
   if (name === null) return;
 
   const playlist = await createPlaylist(name);
-  playlistStore.setCurrentPlaylist(playlist.id);
-  navigateTo("playlists");
+  navigateTo("playlists", { id: playlist.id });
 }
 </script>
 

@@ -4,14 +4,14 @@
 // 说明：目前只有“数据管理”类设置，播放偏好等选项等有明确需求再加
 import { computed, onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { ArrowLeft, Database, HardDrive, Info, Trash2 } from "lucide-vue-next";
+import { Database, HardDrive, Info, Trash2 } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";
 import { usePlaylistStore } from "@/stores/playlist";
 import { usePlayerStore } from "@/stores/player";
 import { getMusicStorage, getPlaylistStorage } from "@/app/services";
 import { useMusicActions } from "@/composables/useMusicActions";
 import { useToast } from "@/composables/useToast";
-import { useNavigation } from "@/composables/useNavigation";
+import PageHeader from "@/components/PageHeader.vue";
 
 const musicStore = useMusicStore();
 const playlistStore = usePlaylistStore();
@@ -22,7 +22,6 @@ const playlistStorage = getPlaylistStorage();
 
 const { clearRecentSongs } = useMusicActions();
 const toast = useToast();
-const { canGoBack, goBack } = useNavigation();
 
 const { songs, favoriteSongs, recentSongs } = storeToRefs(musicStore);
 const { playlists } = storeToRefs(playlistStore);
@@ -103,112 +102,89 @@ async function handleClearAll() {
 
 <template>
   <section class="page-shell">
-    <header class="settings-header">
-      <button
-        class="back-button"
-        :disabled="!canGoBack"
-        title="返回上一页"
-        @click="goBack"
-      >
-        <ArrowLeft :size="19" />
-      </button>
+    <div class="settings-inner">
+      <PageHeader title="设置" subtitle="本地数据与版本信息" />
 
-      <div>
-        <h2>设置</h2>
-        <p>本地数据与版本信息</p>
-      </div>
-    </header>
+      <!-- 存储用量 -->
+      <section class="panel">
+        <h3 class="panel-title"><HardDrive :size="17" /> 存储用量</h3>
 
-    <!-- 存储用量 -->
-    <section class="panel">
-      <h3 class="panel-title"><HardDrive :size="17" /> 存储用量</h3>
+        <template v-if="storage.supported">
+          <div class="usagebar">
+            <div class="usagebar-fill" :style="{ width: `${usagePercent}%` }"></div>
+          </div>
+          <p class="panel-hint">
+            已用 {{ formatBytes(storage.usage) }} / 可用配额
+            {{ formatBytes(storage.quota) }}（{{ usagePercent }}%）
+          </p>
+        </template>
 
-      <template v-if="storage.supported">
-        <div class="usagebar">
-          <div class="usagebar-fill" :style="{ width: `${usagePercent}%` }"></div>
+        <p v-else class="panel-hint">当前浏览器不支持存储用量查询</p>
+      </section>
+
+      <!-- 数据统计 -->
+      <section class="panel">
+        <h3 class="panel-title"><Database :size="17" /> 本地数据</h3>
+
+        <div class="stats">
+          <div v-for="item in stats" :key="item.label" class="stat">
+            <span class="stat-value">{{ item.value }}</span>
+            <span class="stat-label">{{ item.label }}</span>
+          </div>
         </div>
+      </section>
+
+      <!-- 数据管理 -->
+      <section class="panel">
+        <h3 class="panel-title"><Trash2 :size="17" /> 数据管理</h3>
+
+        <div class="action-row">
+          <div class="action-text">
+            <strong>清空最近播放</strong>
+            <span>只清除播放记录，不影响歌曲与歌单</span>
+          </div>
+          <button class="ghost-button" @click="handleClearRecent">清空</button>
+        </div>
+
+        <div class="action-row">
+          <div class="action-text">
+            <strong>清空播放队列</strong>
+            <span>当前队列会变空，正在播放的歌曲不受影响</span>
+          </div>
+          <button class="ghost-button" @click="handleClearQueue">清空</button>
+        </div>
+
+        <div class="action-row danger">
+          <div class="action-text">
+            <strong>清空全部数据</strong>
+            <span>删除歌曲、收藏、歌单与播放记录，不可恢复</span>
+          </div>
+          <button class="ghost-button danger" @click="handleClearAll">删除</button>
+        </div>
+      </section>
+
+      <!-- 关于 -->
+      <section class="panel">
+        <h3 class="panel-title"><Info :size="17" /> 关于</h3>
         <p class="panel-hint">
-          已用 {{ formatBytes(storage.usage) }} / 可用配额 {{ formatBytes(storage.quota) }}
-          （{{ usagePercent }}%）
+          ZhuPlay v{{ version }} · Vue 3 + Vite + Pinia + IndexedDB
         </p>
-      </template>
-
-      <p v-else class="panel-hint">当前浏览器不支持存储用量查询</p>
-    </section>
-
-    <!-- 数据统计 -->
-    <section class="panel">
-      <h3 class="panel-title"><Database :size="17" /> 本地数据</h3>
-
-      <div class="stats">
-        <div v-for="item in stats" :key="item.label" class="stat">
-          <span class="stat-value">{{ item.value }}</span>
-          <span class="stat-label">{{ item.label }}</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 数据管理 -->
-    <section class="panel">
-      <h3 class="panel-title"><Trash2 :size="17" /> 数据管理</h3>
-
-      <div class="action-row">
-        <div class="action-text">
-          <strong>清空最近播放</strong>
-          <span>只清除播放记录，不影响歌曲与歌单</span>
-        </div>
-        <button class="ghost-button" @click="handleClearRecent">清空</button>
-      </div>
-
-      <div class="action-row">
-        <div class="action-text">
-          <strong>清空播放队列</strong>
-          <span>当前队列会变空，正在播放的歌曲不受影响</span>
-        </div>
-        <button class="ghost-button" @click="handleClearQueue">清空</button>
-      </div>
-
-      <div class="action-row danger">
-        <div class="action-text">
-          <strong>清空全部数据</strong>
-          <span>删除歌曲、收藏、歌单与播放记录，不可恢复</span>
-        </div>
-        <button class="ghost-button danger" @click="handleClearAll">删除</button>
-      </div>
-    </section>
-
-    <!-- 关于 -->
-    <section class="panel">
-      <h3 class="panel-title"><Info :size="17" /> 关于</h3>
-      <p class="panel-hint">ZhuPlay v{{ version }} · Vue 3 + Vite + Pinia + IndexedDB</p>
-      <p class="panel-hint">所有数据保存在本机浏览器中，不上传服务器。</p>
-    </section>
+        <p class="panel-hint">所有数据保存在本机浏览器中，不上传服务器。</p>
+      </section>
+    </div>
   </section>
 </template>
 
 <style scoped>
-.settings-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.settings-header h2 {
-  margin: 0 0 6px;
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.settings-header p {
-  margin: 0;
-  color: #999;
-  font-size: 13px;
+/* 设置内容居中成一列，避免宽屏下贴在左上角 */
+.settings-inner {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
 }
 
 .panel {
-  max-width: 720px;
-  margin-bottom: 18px;
+  margin: 0 0 18px;
   padding: 18px 20px;
   border: 1px solid #232323;
   border-radius: 12px;
