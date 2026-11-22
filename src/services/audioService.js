@@ -35,6 +35,31 @@ export function createAudioService() {
     audio.src = ''
   }
 
+  // 设置音量（0~1）
+  function setVolume(value) {
+    const number = Number(value)
+    audio.volume = Number.isFinite(number)
+      ? Math.min(Math.max(number, 0), 1)
+      : 0
+    return audio.volume
+  }
+
+  // 获取音量
+  function getVolume() {
+    return audio.volume
+  }
+
+  // 设置静音
+  function setMuted(muted) {
+    audio.muted = Boolean(muted)
+    return audio.muted
+  }
+
+  // 是否静音
+  function getMuted() {
+    return audio.muted
+  }
+
   // 销毁音频服务
   function destroy() {
     audio.pause()
@@ -49,6 +74,10 @@ export function createAudioService() {
     setSource,
     seek,
     stop,
+    setVolume,
+    getVolume,
+    setMuted,
+    getMuted,
     destroy
   }
 }

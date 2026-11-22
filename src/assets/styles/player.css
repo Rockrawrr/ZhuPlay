@@ -1,0 +1,94 @@
+/* ==============================
+   ZhuPlay - Player Styles
+   播放器内部共用的控件样式
+   ============================== */
+
+/* 图标按钮：随机、上一首、下一首、循环、喜欢、静音、队列 */
+.player-icon {
+  display: grid;
+  place-items: center;
+  position: relative;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.player-icon:hover {
+  color: var(--color-text);
+}
+
+.player-icon.active {
+  color: var(--color-primary);
+}
+
+.player-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 主播放/暂停按钮 */
+.play-button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  cursor: pointer;
+}
+
+.play-button:hover {
+  transform: scale(1.06);
+}
+
+.play-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.play-button:disabled:hover {
+  transform: none;
+}
+
+/* 单曲循环角标 */
+.repeat-one {
+  position: absolute;
+  top: -1px;
+  right: -2px;
+  font-size: 9px;
+  font-weight: bold;
+}
+
+/* 进度条与音量条共用的滑块外观 */
+.player-slider {
+  height: 4px;
+  appearance: none;
+  background: #535353;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.player-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.player-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.player-slider:disabled {
+  cursor: default;
+  opacity: 0.5;
+}

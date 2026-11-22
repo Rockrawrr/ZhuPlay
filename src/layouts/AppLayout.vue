@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useNavigation } from "@/composables/useNavigation";
 import Sidebar from "@/components/Sidebar.vue";
-import MusicPlayer from "@/components/MusicPlayer.vue";
+import PlayerBar from "@/components/player/PlayerBar.vue";
 import Home from "@/views/Home.vue";
 import Library from "@/views/Library.vue";
 import Favorites from "@/views/Favorites.vue";
@@ -27,7 +27,7 @@ const currentView = computed(() => viewMap[currentPage.value] ?? Home);
       <Sidebar />
       <component :is="currentView" />
     </div>
-    <MusicPlayer />
+    <PlayerBar />
   </div>
 </template>
 

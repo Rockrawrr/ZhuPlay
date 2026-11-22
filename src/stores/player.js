@@ -21,6 +21,12 @@ export const usePlayerStore = defineStore("player", {
     // 歌曲总时长
     duration: 0,
 
+    // 音量（0~1，与 <audio>.volume 保持同步）
+    volume: 1,
+
+    // 是否静音
+    isMuted: false,
+
     // 播放队列：本次播放的上下文（来自某个列表）
     queue: [],
 
@@ -70,6 +76,26 @@ export const usePlayerStore = defineStore("player", {
     // 更新歌曲总时长
     setDuration(time) {
       this.duration = time;
+    },
+
+    // ===== 音量 =====
+
+    // 设置音量，超出 0~1 的值会被夹紧
+    setVolume(value) {
+      const number = Number(value);
+      this.volume = Number.isFinite(number)
+        ? Math.min(Math.max(number, 0), 1)
+        : 0;
+    },
+
+    // 设置静音状态
+    setMuted(muted) {
+      this.isMuted = Boolean(muted);
+    },
+
+    // 切换静音
+    toggleMute() {
+      this.isMuted = !this.isMuted;
     },
 
     // ===== 播放队列 =====

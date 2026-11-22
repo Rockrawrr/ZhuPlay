@@ -9,6 +9,9 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 // 引入 ZhuPlay 全局样式
 import './assets/styles/main.css'
 
+// 播放器内部共用样式（图标按钮、滑块）
+import './assets/styles/player.css'
+
 // 创建 Vue 应用
 const app = createApp(App)
 

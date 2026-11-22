@@ -5,11 +5,13 @@ import { getMusicStorage } from "@/app/services";
 import { releaseSong } from "@/services/musicService";
 import { destroyAudioPlayer } from "@/composables/useAudioPlayer";
 import { useQueuePersistence } from "@/app/useQueuePersistence";
+import { useVolume } from "@/composables/useVolume";
 
 export function useAppBootstrap() {
   const musicStore = useMusicStore();
   const musicStorage = getMusicStorage();
   const { restoreQueue } = useQueuePersistence();
+  const { restoreVolume } = useVolume();
 
   async function initializeMusic() {
     try {
@@ -36,6 +38,8 @@ export function useAppBootstrap() {
     await initializeMusic();
     // 曲库恢复后再还原队列：队列里的歌曲要能在 songs 里按 id 找到
     await restoreQueue();
+    // 音量与曲库无关，单独恢复
+    await restoreVolume();
   });
 
   onUnmounted(() => {
