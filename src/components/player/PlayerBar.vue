@@ -25,7 +25,6 @@ const {
   repeatMode,
   currentTime,
   duration,
-  queue,
   volume,
   isMuted,
 } = storeToRefs(playerStore);
@@ -93,9 +92,6 @@ function handleCycleRepeat() {
         @click="showQueue = !showQueue"
       >
         <ListMusic :size="19" />
-        <span v-if="queue.length > 0" class="queue-badge">
-          {{ queue.length }}
-        </span>
       </button>
 
       <VolumeControl
@@ -142,23 +138,6 @@ function handleCycleRepeat() {
 /* 播放队列按钮 */
 .queue-button {
   position: relative;
-}
-
-.queue-badge {
-  position: absolute;
-  top: -4px;
-  right: -6px;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 3px;
-  display: grid;
-  place-items: center;
-  border-radius: 7px;
-  background: var(--color-primary);
-  color: #000;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1;
 }
 
 /* 窄屏 / 竖屏平板：信息行 + 控制行（进度条独占一行），避免播放条撑破视口 */
