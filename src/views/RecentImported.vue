@@ -47,7 +47,7 @@ const sortedSongs = computed(() =>
         v-for="(song, index) in sortedSongs"
         :key="song.id"
         class="song-item"
-        @click="playSong(song)"
+        @click="playSong(song, sortedSongs)"
       >
         <span class="song-index">{{ index + 1 }}</span>
 

@@ -79,7 +79,7 @@ function onFileChange(event) {
         :song="song"
         :index="index"
         :is-favorite="favoriteSongs.includes(song.id)"
-        @play="playSong"
+        @play="(song) => playSong(song, songs)"
         @remove="removeSong"
         @toggle-favorite="toggleFavorite"
       />

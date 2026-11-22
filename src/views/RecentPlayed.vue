@@ -49,7 +49,7 @@ const { canGoBack, goBack } = useNavigation();
         v-for="(song, index) in recentSongs"
         :key="song.id"
         class="song-item"
-        @click="playSong(song)"
+        @click="playSong(song, recentSongs)"
       >
         <span class="song-index">{{ index + 1 }}</span>
         <div class="song-cover">

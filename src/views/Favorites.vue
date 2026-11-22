@@ -52,7 +52,10 @@ const { canGoBack, goBack } = useNavigation();
       >
         <span class="song-index">{{ index + 1 }}</span>
         <div class="song-icon"><Music2 :size="20" /></div>
-        <div class="song-info" @click="playSong(song)">
+        <div
+          class="song-info"
+          @click="playSong(song, favoriteSongsList)"
+        >
           <div class="song-name">{{ song.name }}</div>
           <div class="song-filename">{{ song.filename }}</div>
         </div>

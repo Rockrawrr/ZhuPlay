@@ -41,12 +41,15 @@ const featuredSongs = computed(() => {
 
 // 首页快捷播放
 function handleQuickPlay(id) {
-  let song = null;
-  if (id === 1) song = recentSongs.value[0];
-  else if (id === 2) song = recentImportedSongs.value[0];
-  else if (id === 4) song = favoriteSongsList.value[0];
-  else if (id === 6) song = songs.value[0];
-  if (song) playSong(song);
+  // 快捷入口：以对应列表作为播放队列，保证下一首仍在该列表内
+  let list = null;
+  if (id === 1) list = recentSongs.value;
+  else if (id === 2) list = recentImportedSongs.value;
+  else if (id === 4) list = favoriteSongsList.value;
+  else if (id === 6) list = songs.value;
+
+  const song = list?.[0];
+  if (song) playSong(song, list);
 }
 
 // 处理首页快捷入口点击
@@ -115,7 +118,7 @@ function handleQuickCardClick(id) {
           v-for="song in featuredSongs"
           :key="song.id"
           class="album-card"
-          @click="playSong(song)"
+          @click="playSong(song, featuredSongs)"
         >
           <div class="album-cover">
             <Music2 :size="48" />
@@ -123,7 +126,7 @@ function handleQuickCardClick(id) {
             <button
               class="featured-play"
               :title="`播放${song.name}`"
-              @click.stop="playSong(song)"
+              @click.stop="playSong(song, featuredSongs)"
             >
               <Play :size="18" fill="currentColor" />
             </button>
@@ -155,7 +158,7 @@ function handleQuickCardClick(id) {
           v-for="(song, index) in recentImportedSongs"
           :key="song.id"
           class="recent-item"
-          @click="playSong(song)"
+          @click="playSong(song, recentImportedSongs)"
         >
           <span class="recent-index">{{ index + 1 }}</span>
 
@@ -204,7 +207,7 @@ function handleQuickCardClick(id) {
           v-for="(song, index) in recentSongs.slice(0, 6)"
           :key="song.id"
           class="recent-item"
-          @click="playSong(song)"
+          @click="playSong(song, recentSongs)"
         >
           <span class="recent-index">{{ index + 1 }}</span>
 

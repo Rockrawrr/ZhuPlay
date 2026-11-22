@@ -62,6 +62,9 @@ export function useMusicActions() {
     if (currentSong.value?.id === id) {
       audioService.stop();
       playerStore.resetPlayer();
+    } else {
+      // 非当前歌曲：只从播放队列中移除，避免下一首又播到已删除的歌
+      playerStore.removeFromQueue(id);
     }
 
     try {
