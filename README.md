@@ -8,27 +8,35 @@ zhuplay
 ├─ public
 │  └─ favicon.ico
 ├─ src
+│  ├─ api
 │  ├─ App.vue
 │  ├─ assets
 │  │  ├─ images
 │  │  └─ styles
 │  │     └─ main.css
 │  ├─ components
-│  │  ├─ FavoriteMusic.vue
-│  │  ├─ MainContent.vue
-│  │  ├─ MusicLibrary.vue
 │  │  ├─ MusicPlayer.vue
 │  │  ├─ Sidebar.vue
 │  │  └─ SongItem.vue
+│  ├─ composables
+│  │  ├─ useAudioPlayer.js
+│  │  ├─ useMusicActions.js
+│  │  └─ useMusicInitialization.js
+│  ├─ layouts
+│  │  └─ AppLayout.vue
 │  ├─ main.js
+│  ├─ models
+│  │  └─ song.js
 │  ├─ platform
 │  │  └─ platform.js
 │  ├─ services
 │  │  ├─ audioService.js
+│  │  ├─ metadataService.js
 │  │  ├─ musicService.js
 │  │  └─ playlistService.js
 │  ├─ storage
 │  │  ├─ adapters
+│  │  │  ├─ cloudAdapter.js
 │  │  │  └─ indexedDBAdapter.js
 │  │  ├─ database.js
 │  │  └─ musicStorage.js
@@ -41,6 +49,8 @@ zhuplay
 │     ├─ Home.vue
 │     ├─ Library.vue
 │     ├─ Playlists.vue
+│     ├─ RecentImported.vue
+│     ├─ RecentPlayed.vue
 │     └─ Settings.vue
 └─ vite.config.js
 
