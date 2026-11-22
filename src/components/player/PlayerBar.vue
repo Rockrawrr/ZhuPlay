@@ -14,7 +14,7 @@ import PlaybackControls from "@/components/player/PlaybackControls.vue";
 import ProgressBar from "@/components/player/ProgressBar.vue";
 import VolumeControl from "@/components/player/VolumeControl.vue";
 import QueuePanel from "@/components/player/QueuePanel.vue";
-import LyricsPanel from "@/components/player/LyricsPanel.vue";
+import LyricsScreen from "@/components/player/LyricsScreen.vue";
 
 const playerStore = usePlayerStore();
 const musicStore = useMusicStore();
@@ -65,6 +65,7 @@ function handleCycleRepeat() {
       :song="currentSong"
       :is-favorite="isCurrentFavorite"
       @toggle-favorite="handleToggleFavorite"
+      @open-lyrics="showLyrics = !showLyrics"
     />
 
     <div class="player-center">
@@ -91,8 +92,9 @@ function handleCycleRepeat() {
       <button
         class="player-icon"
         :class="{ active: showLyrics }"
+        :disabled="!currentSong"
         title="歌词"
-        @click="showLyrics = !showLyrics"
+        @click="showLyrics = true"
       >
         <ScrollText :size="19" />
       </button>
@@ -116,11 +118,16 @@ function handleCycleRepeat() {
 
     <QueuePanel v-if="showQueue" @close="showQueue = false" />
 
-    <LyricsPanel
+    <LyricsScreen
       v-if="showLyrics"
       :song="currentSong"
       :current-time="currentTime"
+      :duration="duration"
+      :is-playing="isPlaying"
       @seek="seek"
+      @toggle-play="togglePlay"
+      @previous="playPrevious"
+      @next="playNext"
       @close="showLyrics = false"
     />
   </footer>

@@ -48,7 +48,7 @@ zhuplay
    │  │  ├─ ProgressBar.vue    # 播放进度
    │  │  ├─ VolumeControl.vue  # 音量与静音
    │  │  ├─ QueuePanel.vue     # 播放队列面板
-   │  │  └─ LyricsPanel.vue    # 歌词面板（逐句高亮 + 点击跳转）
+   │  │  └─ LyricsScreen.vue   # 全屏歌词页（模糊封面背景 + 逐句高亮，点击左下角歌曲进入）
    │  └─ playlist              # 歌单 UI
    │     ├─ PlaylistCard.vue   # 歌单卡片
    │     ├─ PlaylistDetail.vue # 歌单详情（头部 + 歌曲列表）
@@ -153,7 +153,7 @@ Electron 相关的设计：
 
 - 导入时解析内嵌歌词（ID3 USLT / SYLT、Vorbis LYRICS、MP4 ©lyr 等）
 - 桌面端如果没有内嵌歌词，会尝试读取音频同目录下的同名 `.lrc`
-- 播放条右侧「歌词」按钮打开面板，逐句滚动高亮，点击某句可跳转
+- 播放条右侧「歌词」按钮，或直接点**左下角的歌曲区域**，进入全屏歌词页（模糊封面背景，Esc / 关闭按钮退出）
 - 解析逻辑在 `src/utils/lyrics.js`：带时间轴的按 LRC 处理，纯文本按静态歌词展示
 
 ## 发布与签名

@@ -1,7 +1,7 @@
 <script setup>
 // 首页：快捷入口 + 为你推荐 + 最近导入 + 最近播放
 // 三个内容区块已拆到 components/home/ 下，这里只保留装配与快捷入口
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { ArrowLeft, ArrowRight, Clock3, Music2, Play } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";
@@ -26,9 +26,43 @@ const { playSong } = useAudioPlayer();
 const { clearRecentSongs } = useMusicActions();
 const { canGoBack, canGoForward, goBack, goForward, navigateTo } = useNavigation();
 
+// ===== 右上角「访客用户」菜单 =====
+const showProfileMenu = ref(false);
+const appVersion = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "1.1.0";
+
+function toggleProfileMenu() {
+  showProfileMenu.value = !showProfileMenu.value;
+}
+
+function closeProfileMenu() {
+  showProfileMenu.value = false;
+}
+
+function handleDocumentClick() {
+  closeProfileMenu();
+}
+
+function handleEscape(event) {
+  if (event.key === "Escape") closeProfileMenu();
+}
+
+function goSettings() {
+  closeProfileMenu();
+  navigateTo("settings");
+}
+
+onMounted(() => {
+  document.addEventListener("click", handleDocumentClick);
+  window.addEventListener("keydown", handleEscape);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleDocumentClick);
+  window.removeEventListener("keydown", handleEscape);
+});
+
 // 收藏 ID 集合，供推荐卡片快速判断
-const favoriteIds = computed(
-  () => new Set(favoriteSongsList.value.map((song) => song.id)),
+const favoriteIds = computed(  () => new Set(favoriteSongsList.value.map((song) => song.id)),
 );
 
 // 首页精选：先收藏、再其它，最多 6 首
@@ -101,7 +135,24 @@ function playRecent(song) {
           <ArrowRight :size="19" />
         </button>
       </div>
-      <button class="profile-button">访客用户</button>
+      <button class="profile-button" @click.stop="toggleProfileMenu">
+        访客用户
+      </button>
+
+      <div v-if="showProfileMenu" class="profile-menu" @click.stop>
+        <div class="profile-menu-head">
+          <span class="profile-menu-avatar">访</span>
+          <div>
+            <div class="profile-menu-name">访客模式</div>
+            <div class="profile-menu-version">ZhuPlay v{{ appVersion }}</div>
+          </div>
+        </div>
+
+        <button class="profile-menu-item" @click="goSettings">设置</button>
+        <button class="profile-menu-item" disabled>
+          登录 / 注册（开发中）
+        </button>
+      </div>
     </header>
 
     <section class="welcome-section">
@@ -199,6 +250,77 @@ function playRecent(song) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+}
+
+/* ===== 访客用户菜单 ===== */
+
+.profile-menu {
+  position: absolute;
+  top: 62px;
+  right: 0;
+  width: 220px;
+  padding: 8px;
+  border-radius: 10px;
+  background: #1c1c1c;
+  border: 1px solid #2a2a2a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  z-index: 60;
+}
+
+.profile-menu-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 12px;
+  border-bottom: 1px solid #262626;
+  margin-bottom: 6px;
+}
+
+.profile-menu-avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffffff12;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.profile-menu-name {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-menu-version {
+  margin-top: 3px;
+  color: #8a8a8a;
+  font-size: 11px;
+}
+
+.profile-menu-item {
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #d0d0d0;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-menu-item:hover:not(:disabled) {
+  background: #262626;
+  color: #fff;
+}
+
+.profile-menu-item:disabled {
+  color: #666;
+  cursor: default;
 }
 
 .history-buttons {
