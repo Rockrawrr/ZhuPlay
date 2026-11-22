@@ -132,7 +132,13 @@ function handleQuickCardClick(id) {
           @click="playSong(song, featuredSongs)"
         >
           <div class="album-cover">
-            <Music2 :size="48" />
+            <img
+              v-if="song.coverUrl"
+              :src="song.coverUrl"
+              :alt="song.album || song.name"
+              loading="lazy"
+            />
+            <Music2 v-else :size="48" />
 
             <button
               class="featured-play"
@@ -177,7 +183,13 @@ function handleQuickCardClick(id) {
           <span class="recent-index">{{ index + 1 }}</span>
 
           <div class="recent-icon">
-            <Music2 :size="20" />
+            <img
+              v-if="song.coverUrl"
+              :src="song.coverUrl"
+              :alt="song.album || song.name"
+              loading="lazy"
+            />
+            <Music2 v-else :size="20" />
           </div>
 
           <div class="recent-info">
@@ -232,7 +244,13 @@ function handleQuickCardClick(id) {
           <span class="recent-index">{{ index + 1 }}</span>
 
           <div class="recent-icon">
-            <Music2 :size="20" />
+            <img
+              v-if="song.coverUrl"
+              :src="song.coverUrl"
+              :alt="song.album || song.name"
+              loading="lazy"
+            />
+            <Music2 v-else :size="20" />
           </div>
 
           <div class="recent-info">
@@ -509,6 +527,12 @@ function handleQuickCardClick(id) {
   color: #d9f7e4;
 }
 
+.album-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .featured-play {
   position: absolute;
   right: 10px;
@@ -599,9 +623,16 @@ function handleQuickCardClick(id) {
   height: 42px;
   display: grid;
   place-items: center;
+  overflow: hidden;
   background: #282828;
   border-radius: 5px;
   color: #1ed760;
+}
+
+.recent-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .recent-info {
