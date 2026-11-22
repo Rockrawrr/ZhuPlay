@@ -124,10 +124,16 @@ function handleCycleRepeat() {
       :current-time="currentTime"
       :duration="duration"
       :is-playing="isPlaying"
+      :volume="volume"
+      :muted="isMuted"
+      :queue-open="showQueue"
       @seek="seek"
       @toggle-play="togglePlay"
       @previous="playPrevious"
       @next="playNext"
+      @volume-change="setVolume"
+      @toggle-mute="toggleMute"
+      @toggle-queue="showQueue = !showQueue"
       @close="showLyrics = false"
     />
   </footer>

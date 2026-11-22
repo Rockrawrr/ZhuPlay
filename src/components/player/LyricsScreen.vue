@@ -3,10 +3,19 @@
 // 背景是模糊的专辑封面 + 暗色遮罩，中间逐句滚动高亮，底部保留进度与上一首/下一首
 // 入口：点击播放条左下角的歌曲区域，或播放条右侧歌词按钮
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { ChevronLeft, Pause, Play, SkipBack, SkipForward, X } from "lucide-vue-next";
+import {
+  ChevronLeft,
+  ListMusic,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  X,
+} from "lucide-vue-next";
 import { useObjectUrl } from "@/composables/useObjectUrl";
 import { findLyricIndex, parseLyrics } from "@/utils/lyrics";
 import ProgressBar from "@/components/player/ProgressBar.vue";
+import VolumeControl from "@/components/player/VolumeControl.vue";
 
 const props = defineProps({
   song: {
@@ -25,9 +34,30 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  volume: {
+    type: Number,
+    default: 1,
+  },
+  muted: {
+    type: Boolean,
+    default: false,
+  },
+  queueOpen: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(["close", "seek", "toggle-play", "previous", "next"]);
+const emit = defineEmits([
+  "close",
+  "seek",
+  "toggle-play",
+  "previous",
+  "next",
+  "volume-change",
+  "toggle-mute",
+  "toggle-queue",
+]);
 
 const listRef = ref(null);
 const coverUrl = useObjectUrl(() => props.song?.cover ?? null);
@@ -136,39 +166,63 @@ function handleLineClick(line) {
 
       <footer class="lyrics-footer">
         <ProgressBar
+          class="lyrics-progress"
           :current-time="currentTime"
           :duration="duration"
           @seek="emit('seek', $event)"
         />
 
-        <div class="lyrics-controls">
-          <button
-            class="lyrics-control"
-            :disabled="!song"
-            title="上一首"
-            @click="emit('previous')"
-          >
-            <SkipBack :size="20" />
-          </button>
+        <div class="lyrics-bottom">
+          <span class="lyrics-spacer" aria-hidden="true"></span>
 
-          <button
-            class="lyrics-play"
-            :disabled="!song"
-            :title="isPlaying ? '暂停' : '播放'"
-            @click="emit('toggle-play')"
-          >
-            <Pause v-if="isPlaying" :size="22" fill="currentColor" />
-            <Play v-else :size="22" fill="currentColor" />
-          </button>
+          <div class="lyrics-controls">
+            <button
+              class="lyrics-control"
+              :disabled="!song"
+              title="上一首"
+              @click="emit('previous')"
+            >
+              <SkipBack :size="20" />
+            </button>
 
-          <button
-            class="lyrics-control"
-            :disabled="!song"
-            title="下一首"
-            @click="emit('next')"
-          >
-            <SkipForward :size="20" />
-          </button>
+            <button
+              class="lyrics-play"
+              :disabled="!song"
+              :title="isPlaying ? '暂停' : '播放'"
+              @click="emit('toggle-play')"
+            >
+              <Pause v-if="isPlaying" :size="22" fill="currentColor" />
+              <Play v-else :size="22" fill="currentColor" />
+            </button>
+
+            <button
+              class="lyrics-control"
+              :disabled="!song"
+              title="下一首"
+              @click="emit('next')"
+            >
+              <SkipForward :size="20" />
+            </button>
+          </div>
+
+          <div class="lyrics-actions">
+            <button
+              class="lyrics-control"
+              :class="{ active: queueOpen }"
+              title="播放队列"
+              @click="emit('toggle-queue')"
+            >
+              <ListMusic :size="20" />
+            </button>
+
+            <VolumeControl
+              class="lyrics-volume"
+              :volume="volume"
+              :muted="muted"
+              @volume-change="emit('volume-change', $event)"
+              @toggle-mute="emit('toggle-mute')"
+            />
+          </div>
         </div>
       </footer>
     </section>
@@ -354,12 +408,31 @@ function handleLineClick(line) {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 820px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 0 24px 28px;
+  padding: 0 24px 26px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
+}
+
+/* 进度条占满底栏并居中（ProgressBar 默认 max-width: 520px） */
+:deep(.progress-container) {
+  max-width: 100%;
+}
+
+.lyrics-bottom {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.lyrics-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .lyrics-controls {
@@ -367,6 +440,10 @@ function handleLineClick(line) {
   align-items: center;
   justify-content: center;
   gap: 22px;
+}
+
+.lyrics-control.active {
+  color: var(--color-primary);
 }
 
 .lyrics-control {
@@ -429,6 +506,16 @@ function handleLineClick(line) {
 
   .lyrics-footer {
     padding: 0 18px 20px;
+  }
+
+  /* 窄屏：控制仍居中，音量交给系统，只保留队列按钮 */
+  .lyrics-bottom {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+  }
+
+  .lyrics-volume {
+    display: none;
   }
 }
 </style>
