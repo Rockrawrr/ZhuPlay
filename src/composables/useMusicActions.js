@@ -216,12 +216,64 @@ export function useMusicActions() {
     }
   }
 
+  // 批量删除：只落一次库、只弹一次提示
+  async function removeSongs(ids) {
+    const uniqueIds = [...new Set(ids)].filter(Boolean);
+    if (uniqueIds.length === 0) return;
+
+    const idSet = new Set(uniqueIds);
+
+    if (currentSong.value && idSet.has(currentSong.value.id)) {
+      audioService.stop();
+      playerStore.resetPlayer();
+    }
+
+    for (const id of uniqueIds) {
+      try {
+        await musicStorage.deleteSong(id);
+      } catch (error) {
+        console.error(`歌曲删除失败：${id}`, error);
+      }
+
+      playerStore.removeFromQueue(id);
+      musicStore.removeSong(id);
+      releaseSongAudioUrl(id);
+    }
+
+    try {
+      await musicStorage.saveMusicData(STORAGE_KEYS.favorites, [
+        ...musicStore.favoriteSongs,
+      ]);
+    } catch (error) {
+      console.error("收藏记录保存失败：", error);
+    }
+
+    // 从所有歌单里移除这些歌，同一歌单只落库一次
+    const changedPlaylists = new Map();
+    for (const id of uniqueIds) {
+      for (const playlist of playlistStore.removeSongFromAll(id)) {
+        changedPlaylists.set(playlist.id, playlist);
+      }
+    }
+
+    for (const playlist of changedPlaylists.values()) {
+      try {
+        await playlistStorage.savePlaylist(playlist);
+      } catch (error) {
+        console.error("歌单更新失败：", error);
+      }
+    }
+
+    toast.success(`已删除 ${uniqueIds.length} 首歌曲`);
+  }
+
   return {
     importSongs,
     toggleFavorite,
     clearRecentSongs,
     removeRecentSong,
     removeSong,
+    removeSongs,
     clearAllSongs,
   };
 }

@@ -45,16 +45,22 @@ export function useContextMenu() {
 
 const pickerState = reactive({
   // 当前要添加的歌曲，null 表示弹窗关闭
-  song: null,
+  // 要添加的歌曲列表（单选时长度为 1）
+  songs: [],
 });
 
-function openPlaylistPicker(song) {
-  if (!song) return;
-  pickerState.song = song;
+// 支持传单首歌曲或歌曲数组（批量操作）
+function openPlaylistPicker(input) {
+  if (!input) return;
+
+  const list = Array.isArray(input) ? input.filter(Boolean) : [input];
+  if (list.length === 0) return;
+
+  pickerState.songs = list;
 }
 
 function closePlaylistPicker() {
-  pickerState.song = null;
+  pickerState.songs = [];
 }
 
 export function usePlaylistPicker() {

@@ -34,8 +34,8 @@ useListeningStats().initStats()
   <SongInfoDialog />
   <!-- 添加到歌单（由右键菜单和音乐库共用） -->
   <AddToPlaylistDialog
-    v-if="pickerState.song"
-    :song="pickerState.song"
+    v-if="pickerState.songs.length > 0"
+    :songs="pickerState.songs"
     @close="closePlaylistPicker"
   />
 </template>

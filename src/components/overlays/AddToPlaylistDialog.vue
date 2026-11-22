@@ -1,8 +1,8 @@
 <script setup>
-// 「添加到歌单」弹窗：某个页面选中一首歌后打开
-// 契约：props.song 必填，emit('close') 关闭；添加成功即关闭（它只服务一首歌）
+// 「添加到歌单」弹窗
+// 支持单首（右键菜单 / 歌曲行按钮）与多首（音乐库批量操作）
 // 已在歌单里的条目会置灰 + 打勾，防止重复添加
-import { onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 import { storeToRefs } from "pinia";
 import { Check, ListMusic, Plus, X } from "lucide-vue-next";
 import { usePlaylistStore } from "@/stores/playlist";
@@ -11,10 +11,10 @@ import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
 
 const props = defineProps({
-  // 要添加的歌曲
-  song: {
-    type: Object,
-    required: true,
+  // 要添加的歌曲（多选时长度 > 1）
+  songs: {
+    type: Array,
+    default: () => [],
   },
 });
 
@@ -26,17 +26,41 @@ const { addSongToPlaylist, createPlaylist } = usePlaylistActions();
 const toast = useToast();
 const { prompt, state: confirmState } = useConfirm();
 
-function hasSong(playlist) {
-  return playlist.songIds.includes(props.song.id);
+const isBatch = computed(() => props.songs.length > 1);
+const headingText = computed(() =>
+  isBatch.value ? `${props.songs.length} 首歌曲` : props.songs[0]?.name || "",
+);
+
+// 目标歌曲里有多少首还没在这个歌单里
+function pendingCount(playlist) {
+  return props.songs.filter((song) => !playlist.songIds.includes(song.id)).length;
 }
 
-// 加入已有歌单后直接关闭：这个弹窗只服务于一首歌
-async function handleAdd(playlist) {
-  if (hasSong(playlist)) return;
+function hasSong(playlist) {
+  return pendingCount(playlist) === 0;
+}
 
-  await addSongToPlaylist(playlist.id, props.song.id);
-  toast.success(`已添加到「${playlist.name}」`);
+async function addAllTo(playlist) {
+  const targets = props.songs.filter(
+    (song) => !playlist.songIds.includes(song.id),
+  );
+  if (targets.length === 0) return;
+
+  for (const song of targets) {
+    await addSongToPlaylist(playlist.id, song.id);
+  }
+
+  toast.success(
+    targets.length > 1
+      ? `已把 ${targets.length} 首歌曲添加到「${playlist.name}」`
+      : `已添加到「${playlist.name}」`,
+  );
   emit("close");
+}
+
+// 加入已有歌单后直接关闭
+async function handleAdd(playlist) {
+  await addAllTo(playlist);
 }
 
 // 新建歌单并把当前歌曲一起放进去
@@ -46,14 +70,14 @@ async function handleCreate() {
     value: "新建歌单",
     placeholder: "歌单名称",
     confirmText: "创建",
-    message: `会把「${props.song.name}」放进新歌单`,
+    message: isBatch.value
+      ? `会把 ${props.songs.length} 首歌曲放进新歌单`
+      : `会把「${props.songs[0]?.name}」放进新歌单`,
   });
   if (name === null) return;
 
   const playlist = await createPlaylist(name);
-  await addSongToPlaylist(playlist.id, props.song.id);
-  toast.success(`已新建「${playlist.name}」并添加`);
-  emit("close");
+  await addAllTo(playlist);
 }
 
 function handleKeydown(event) {
@@ -76,7 +100,7 @@ onUnmounted(() => window.removeEventListener("keydown", handleKeydown));
       <header class="dialog-header">
         <div class="dialog-heading">
           <h3>添加到歌单</h3>
-          <p :title="song.name">{{ song.name }}</p>
+          <p :title="headingText">{{ headingText }}</p>
         </div>
         <button class="dialog-close" title="关闭" @click="emit('close')">
           <X :size="18" />
@@ -97,7 +121,11 @@ onUnmounted(() => window.removeEventListener("keydown", handleKeydown));
           <button
             class="playlist-row"
             :disabled="hasSong(playlist)"
-            :title="hasSong(playlist) ? '已在这个歌单里' : `添加到「${playlist.name}」`"
+            :title="
+              hasSong(playlist)
+                ? '已在这个歌单里'
+                : `添加${pendingCount(playlist)}首到「${playlist.name}」`
+            "
             @click="handleAdd(playlist)"
           >
             <span class="row-icon"><ListMusic :size="17" /></span>

@@ -10,6 +10,9 @@ import {
   Heart,
   HardDrive,
   Trash2,
+  Play,
+  ListPlus,
+  ListChecks,
 } from "lucide-vue-next";
 import SongRow from "@/components/common/SongRow.vue";
 import VirtualList from "@/components/common/VirtualList.vue";
@@ -20,19 +23,100 @@ import { useNavigation } from "@/composables/useNavigation";
 import { useToast } from "@/composables/useToast";
 import { useSongMenu } from "@/composables/useSongMenu";
 import { usePlaylistPicker } from "@/composables/useOverlays";
+import { useConfirm } from "@/composables/useConfirm";
 import { formatBytes } from "@/utils/format";
 
 const musicStore = useMusicStore();
 const { songs, favoriteSongs } = storeToRefs(musicStore);
 
 const { playSong } = useAudioPlayer();
-const { importSongs, removeSong, toggleFavorite } = useMusicActions();
+const { importSongs, removeSong, removeSongs, toggleFavorite } =
+  useMusicActions();
 const { canGoBack, goBack } = useNavigation();
 const toast = useToast();
 const { openSongMenu } = useSongMenu();
 const { openPlaylistPicker } = usePlaylistPicker();
+const { confirm } = useConfirm();
 
 const fileInput = ref(null);
+
+// ===== 批量操作 =====
+const selectMode = ref(false);
+const selectedIds = ref(new Set());
+
+const selectedSongs = computed(() =>
+  songs.value.filter((song) => selectedIds.value.has(song.id)),
+);
+
+const allSelected = computed(
+  () =>
+    songs.value.length > 0 && selectedIds.value.size === songs.value.length,
+);
+
+function toggleSelectMode() {
+  selectMode.value = !selectMode.value;
+  selectedIds.value = new Set();
+}
+
+function toggleSelect(song) {
+  const next = new Set(selectedIds.value);
+  if (next.has(song.id)) next.delete(song.id);
+  else next.add(song.id);
+  selectedIds.value = next;
+}
+
+function toggleSelectAll() {
+  selectedIds.value = allSelected.value
+    ? new Set()
+    : new Set(songs.value.map((song) => song.id));
+}
+
+// 一键播放全部歌曲（整个音乐库作为播放队列）
+function playAll() {
+  if (songs.value.length === 0) return;
+  playSong(songs.value[0], songs.value);
+}
+
+function playSelected() {
+  if (selectedSongs.value.length === 0) return;
+  playSong(selectedSongs.value[0], selectedSongs.value);
+}
+
+// 批量收藏：只补收藏，不会取消已有的
+function favoriteSelected() {
+  const targets = selectedSongs.value.filter(
+    (song) => !favoriteSongs.value.includes(song.id),
+  );
+
+  if (targets.length === 0) {
+    toast.info("选中的歌曲都已在喜欢里");
+    return;
+  }
+
+  for (const song of targets) toggleFavorite(song.id);
+  toast.success(`已收藏 ${targets.length} 首歌曲`);
+}
+
+function addSelectedToPlaylist() {
+  if (selectedSongs.value.length === 0) return;
+  openPlaylistPicker(selectedSongs.value);
+}
+
+async function deleteSelected() {
+  const targets = selectedSongs.value;
+  if (targets.length === 0) return;
+
+  const confirmed = await confirm({
+    title: "删除选中的歌曲",
+    message: `将从音乐库删除 ${targets.length} 首歌曲，并同时从收藏、歌单与播放记录中移除。此操作无法恢复。`,
+    confirmText: "删除",
+    danger: true,
+  });
+  if (!confirmed) return;
+
+  await removeSongs(targets.map((song) => song.id));
+  selectedIds.value = new Set();
+}
 
 // 拖拽计数：dragenter/dragleave 会冒泡触发很多次，用计数避免闪烁
 const dragDepth = ref(0);
@@ -130,9 +214,30 @@ function onDrop(event) {
         </div>
       </div>
 
-      <button class="import-button" @click="openFilePicker">
-        <Upload :size="18" /> <span class="import-label">导入音乐</span>
-      </button>
+      <div class="header-actions">
+        <button
+          v-if="songs.length > 0"
+          class="ghost-button header-action"
+          title="把整个音乐库加入播放队列并开始播放"
+          @click="playAll"
+        >
+          <Play :size="16" /> 播放全部
+        </button>
+
+        <button
+          v-if="songs.length > 0"
+          class="ghost-button header-action"
+          :class="{ active: selectMode }"
+          title="批量选择歌曲进行操作"
+          @click="toggleSelectMode"
+        >
+          <ListChecks :size="16" /> {{ selectMode ? "完成" : "批量操作" }}
+        </button>
+
+        <button class="import-button" @click="openFilePicker">
+          <Upload :size="18" /> <span class="import-label">导入音乐</span>
+        </button>
+      </div>
 
       <input
         ref="fileInput"
@@ -142,6 +247,47 @@ function onDrop(event) {
         hidden
         @change="onFileChange"
       />
+    </div>
+
+    <!-- 批量操作栏 -->
+    <div v-if="selectMode && songs.length > 0" class="batch-bar">
+      <div class="batch-info">
+        <span class="batch-count">已选 {{ selectedIds.size }} 首</span>
+        <button class="batch-link" @click="toggleSelectAll">
+          {{ allSelected ? "取消全选" : "全选" }}
+        </button>
+      </div>
+
+      <div class="batch-actions">
+        <button
+          class="ghost-button"
+          :disabled="selectedIds.size === 0"
+          @click="playSelected"
+        >
+          <Play :size="15" /> 播放
+        </button>
+        <button
+          class="ghost-button"
+          :disabled="selectedIds.size === 0"
+          @click="favoriteSelected"
+        >
+          <Heart :size="15" /> 收藏
+        </button>
+        <button
+          class="ghost-button"
+          :disabled="selectedIds.size === 0"
+          @click="addSelectedToPlaylist"
+        >
+          <ListPlus :size="15" /> 加入歌单
+        </button>
+        <button
+          class="ghost-button danger"
+          :disabled="selectedIds.size === 0"
+          @click="deleteSelected"
+        >
+          <Trash2 :size="15" /> 删除
+        </button>
+      </div>
     </div>
 
     <!-- 空状态 -->
@@ -182,6 +328,8 @@ function onDrop(event) {
             :song="song"
             :index="index"
             :is-favorite="favoriteSongs.includes(song.id)"
+            :selectable="selectMode"
+            :selected="selectedIds.has(song.id)"
             meta="size"
             show-favorite
             show-add-to-playlist
@@ -189,6 +337,7 @@ function onDrop(event) {
             remove-label="删除歌曲"
             :remove-icon="Trash2"
             @play="playSong(song, songs)"
+            @toggle-select="toggleSelect(song)"
             @remove="removeSong(song.id)"
             @toggle-favorite="toggleFavorite(song.id)"
             @add-to-playlist="handleAddToPlaylist(song)"
@@ -268,6 +417,101 @@ function onDrop(event) {
 
 .library-stats .dot {
   color: #555;
+}
+
+/* 头部操作区：播放全部 / 批量操作 / 导入 */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.header-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.header-action.active {
+  background: #1d2b23;
+  color: var(--color-primary);
+  border-color: #2f5f47;
+}
+
+/* 批量操作栏 */
+.batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #17211c;
+  border: 1px solid #24402f;
+}
+
+.batch-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.batch-count {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.batch-link {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.batch-link:hover {
+  text-decoration: underline;
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.batch-actions .ghost-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  font-size: 12px;
+  border-radius: 16px;
+}
+
+.batch-actions .ghost-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.batch-actions .ghost-button.danger {
+  color: #ff7b7b;
+  border-color: #4a2626;
+}
+
+.batch-actions .ghost-button.danger:hover:not(:disabled) {
+  background: #2a1616;
+  color: #ff9b9b;
 }
 
 .import-button {

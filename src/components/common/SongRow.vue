@@ -2,7 +2,7 @@
 // 通用歌曲行：序号 + 封面 + 歌名/歌手 + 元信息（时长或文件大小）+ 可选操作按钮
 // 音乐库、收藏、最近播放、最近导入、搜索、歌单详情全部复用这一个组件，
 // 差异通过 props 控制：meta 显示什么、显示哪些按钮、移除按钮用什么图标
-import { Heart, ListPlus, Music2, Trash2, X } from "lucide-vue-next";
+import { Check, Heart, ListPlus, Music2, Trash2, X } from "lucide-vue-next";
 import { formatTime } from "@/utils/format";
 import SongCover from "@/components/common/SongCover.vue";
 
@@ -21,6 +21,15 @@ defineProps({
     default: "duration",
   },
   isFavorite: {
+    type: Boolean,
+    default: false,
+  },
+  // 批量选择模式：显示勾选框，点击整行 = 切换选中，而不是播放
+  selectable: {
+    type: Boolean,
+    default: false,
+  },
+  selected: {
     type: Boolean,
     default: false,
   },
@@ -53,17 +62,21 @@ const emit = defineEmits([
   "remove",
   "toggle-favorite",
   "add-to-playlist",
+  "toggle-select",
 ]);
 </script>
 
 <template>
-  <div class="song-row">
-    <span class="song-index">{{ index + 1 }}</span>
+  <div class="song-row" :class="{ selected, selectable }">
+    <span v-if="selectable" class="song-check" :class="{ checked: selected }">
+      <Check v-if="selected" :size="13" />
+    </span>
+    <span v-else class="song-index">{{ index + 1 }}</span>
 
     <button
       class="song-main"
-      :title="`播放 ${song.name}`"
-      @click="emit('play')"
+      :title="selectable ? (selected ? '取消选择' : '选择这首歌') : `播放 ${song.name}`"
+      @click="selectable ? emit('toggle-select') : emit('play')"
     >
       <span class="song-cover">
         <SongCover :blob="song.cover" :alt="song.album || song.name">
@@ -128,6 +141,33 @@ const emit = defineEmits([
 
 .song-row:hover {
   background: #232323;
+}
+
+.song-row.selected {
+  background: #1d2b23;
+}
+
+.song-row.selected:hover {
+  background: #223429;
+}
+
+.song-check {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #555;
+  border-radius: 50%;
+  color: #000;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.song-check.checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
 }
 
 .song-index {
