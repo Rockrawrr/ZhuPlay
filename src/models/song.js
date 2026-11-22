@@ -1,3 +1,8 @@
+/**
+ * 歌曲数据模型
+ * 说明：file 是用户选中的原始文件（存进 IndexedDB），url / coverUrl 是运行期生成的
+ * blob 地址，不参与持久化（见 storage/musicStorage.js）
+ */
 
 // 创建标准歌曲数据模型
 export function createSongModel(file, metadata = {}) {

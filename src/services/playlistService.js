@@ -1,4 +1,9 @@
 // src/services/playlistService.js
+/**
+ * 歌单领域的纯函数与数据模型
+ * 全部无副作用、不碰 store 与存储，方便单独测试（已在 Node 中验证过边界情况）
+ * 约定：追加 / 移除在“无变化”时返回原数组，调用方据此跳过落库
+ */
 
 // 歌单名长度上限
 export const MAX_PLAYLIST_NAME_LENGTH = 40;

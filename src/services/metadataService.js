@@ -1,3 +1,8 @@
+/**
+ * 元数据解析：把用户选的音频文件读成标准标签
+ * 依赖 music-metadata 的 parseBlob（浏览器可用的解析入口）
+ * 注意：解析失败的情况由调用方（useMusicActions.importSongs）兜底成“文件名当歌名”
+ */
 import { parseBlob } from 'music-metadata'
 
 // 解析音乐文件元数据

@@ -1,4 +1,5 @@
 <script setup>
+// 收藏页：展示喜欢的歌曲，点击即在“收藏列表”内播放
 import { storeToRefs } from "pinia";
 import { Music2, Heart, ArrowLeft } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";

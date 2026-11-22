@@ -1,3 +1,7 @@
+/**
+ * IndexedDB 适配器：把“对象仓库”抽象成 put / get / getAll / remove / clear 五个操作
+ * 这样 musicStorage、playlistStorage 都不需要知道底下是 IndexedDB 还是别的存储
+ */
 import { openDatabase } from "../database";
 
 // IndexedDB 操作适配器

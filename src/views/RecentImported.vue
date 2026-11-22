@@ -1,4 +1,5 @@
 <script setup>
+// 最近导入：按 importedAt 倒序展示曲库，点击在“最近导入顺序”内播放
 import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { Library, Music2, Play, ArrowLeft } from "lucide-vue-next";

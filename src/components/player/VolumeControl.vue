@@ -1,4 +1,6 @@
 <script setup>
+// 音量控制（纯展示）：静音按钮三态图标 + 音量滑块
+// 静音时滑块显示 0，拖动则由父组件负责解除静音
 import { Volume2, Volume1, VolumeX } from "lucide-vue-next";
 
 defineProps({

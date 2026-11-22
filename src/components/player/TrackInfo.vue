@@ -1,4 +1,5 @@
 <script setup>
+// 当前歌曲信息（纯展示）：封面、歌名（过长时跑马灯）、歌手、喜欢按钮
 import { Music2, Heart } from "lucide-vue-next";
 
 // 歌名超过这个长度时启用跑马灯

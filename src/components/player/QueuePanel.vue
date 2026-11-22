@@ -1,4 +1,6 @@
 <script setup>
+// 播放队列面板：展示当前队列、高亮正在播放的一行、点击其它行直接切歌
+// 点歌时沿用当前队列作为上下文，保证“下一首”不会跳出这个列表
 import { onMounted, onUnmounted } from "vue";
 import { storeToRefs } from "pinia";
 import { ListMusic, Music2, Play, X } from "lucide-vue-next";

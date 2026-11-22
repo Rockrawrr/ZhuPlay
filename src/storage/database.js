@@ -1,3 +1,10 @@
+/**
+ * IndexedDB 连接管理
+ * 职责：打开数据库、声明对象仓库、缓存连接
+ * 版本：v1 = songs / musicData；v2 = 新增 playlists（歌单）
+ * 注意：onupgradeneeded 里只“新增缺失的仓库”，不会清空已有数据
+ */
+
 // 数据库名称
 const DB_NAME = "ZhuPlayDB";
 

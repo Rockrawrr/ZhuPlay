@@ -1,4 +1,10 @@
 // src/composables/useAudioPlayer.js
+/**
+ * 播放内核（模块级单例）
+ * 职责：串起 store 状态、<audio> 元素与播放队列，对外暴露播放/切歌/进度动作
+ * 为什么是单例：<audio> 的事件监听只能绑一次，多处调用必须共享同一份实例
+ * 生命周期：由 useAppBootstrap 调用 destroyAudioPlayer() 统一清理
+ */
 import { storeToRefs } from "pinia";
 import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";

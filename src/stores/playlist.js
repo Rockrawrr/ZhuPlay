@@ -7,11 +7,19 @@ import {
   removeSong,
 } from "@/services/playlistService";
 
-// 歌单状态：只改内存，落库由 usePlaylistActions 负责
+/**
+ * 歌单 store
+ * 负责：歌单列表、当前查看的歌单、歌单内歌曲的增删
+ * 边界：只改内存，落库由 usePlaylistActions 负责
+ * 注意：歌单里只存 songId，歌曲对象刷新后由曲库重新解引用
+ */
 export const usePlaylistStore = defineStore("playlist", {
   state: () => ({
     // [{ id, name, songIds, createdAt, updatedAt }]
     playlists: [],
+
+    // 当前正在查看的歌单 id（null 表示停在歌单列表）
+    currentPlaylistId: null,
   }),
 
   getters: {
@@ -24,6 +32,11 @@ export const usePlaylistStore = defineStore("playlist", {
   actions: {
     setPlaylists(playlists) {
       this.playlists = Array.isArray(playlists) ? playlists : [];
+    },
+
+    // 进入 / 退出歌单详情（传 null 回到列表）
+    setCurrentPlaylist(playlistId) {
+      this.currentPlaylistId = playlistId ?? null;
     },
 
     // 新建歌单，插到最前面
@@ -46,6 +59,11 @@ export const usePlaylistStore = defineStore("playlist", {
       this.playlists = this.playlists.filter(
         (playlist) => playlist.id !== playlistId,
       );
+
+      // 删掉的正是当前查看的歌单，退回列表
+      if (this.currentPlaylistId === playlistId) {
+        this.currentPlaylistId = null;
+      }
     },
 
     // 加歌：已存在时返回 null，调用方据此跳过落库

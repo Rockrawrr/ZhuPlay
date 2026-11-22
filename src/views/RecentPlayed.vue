@@ -1,4 +1,5 @@
 <script setup>
+// 最近播放：按播放时间倒序（store 已维护顺序），点击在“最近播放列表”内播放
 import { storeToRefs } from "pinia";
 import { Clock3, Music2, Play, Trash2, ArrowLeft } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";

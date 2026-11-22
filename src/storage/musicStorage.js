@@ -1,3 +1,9 @@
+/**
+ * 歌曲存储门面
+ * 职责：歌曲与零散音乐数据（收藏、最近播放、队列、音量）的读写
+ * 关键点：写入时剥离 url / coverUrl（blob 地址刷新即失效），读取时用 File 重新生成
+ * 依赖抽象：只认 adapter 接口，换 SQLite / 云端实现时上层不用改
+ */
 import { createIndexedDBAdapter } from './adapters/indexedDBAdapter'
 
 // 创建音乐存储服务

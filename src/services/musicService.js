@@ -1,3 +1,8 @@
+/**
+ * 歌曲对象工厂
+ * 负责：校验文件类型、生成数据模型、为 <audio> 和封面创建 blob 地址
+ * 配套 releaseSong：删除歌曲或卸载应用时必须调用，否则 blob 地址会泄漏内存
+ */
 import { createSongModel } from '../models/song'
 
 // 创建歌曲信息

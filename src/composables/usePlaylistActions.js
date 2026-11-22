@@ -1,4 +1,9 @@
 // src/composables/usePlaylistActions.js
+/**
+ * 歌单业务动作
+ * 约定：先改 store（界面立即响应），再落 IndexedDB；
+ * 落库失败只记录日志，不回滚内存状态（避免界面闪烁，后续可接提示层）
+ */
 import { usePlaylistStore } from "@/stores/playlist";
 import { getPlaylistStorage } from "@/app/services";
 

@@ -1,5 +1,11 @@
 import { defineStore } from "pinia";
 
+/**
+ * 曲库 store
+ * 负责：歌曲列表、收藏（只存 songId）、最近播放（存完整对象，上限 50）
+ * 边界：只改内存状态，落库由 useMusicActions 负责
+ * 注意：删除歌曲必须走 removeSong，它会同步清理收藏与最近播放的引用
+ */
 export const useMusicStore = defineStore("music", {
   state: () => ({
     songs: [],

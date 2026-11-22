@@ -1,4 +1,6 @@
 <script setup>
+// 首页：快捷入口、为你推荐、最近导入、最近播放
+// 所有播放动作都带上“当前列表”作为队列上下文，避免下一首跳出当前视图
 import { computed } from "vue";
 import { storeToRefs } from "pinia";
 import { Clock3, Play, Music2, ArrowLeft, ArrowRight } from "lucide-vue-next";

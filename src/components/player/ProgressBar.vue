@@ -1,4 +1,5 @@
 <script setup>
+// 播放进度（纯展示）：当前时间 / 总时长 + 可拖动滑块
 import { computed } from "vue";
 
 const props = defineProps({

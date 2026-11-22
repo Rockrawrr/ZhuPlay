@@ -1,5 +1,11 @@
 import { defineStore } from "pinia";
 
+/**
+ * 播放器 store
+ * 负责：当前歌曲、播放状态、进度 / 时长、随机与循环、播放队列、音量
+ * 边界：不直接操作 <audio>，音频动作由 useAudioPlayer 调 audioService 完成
+ * 注意：queue 是“起播列表的快照”，上一首/下一首只在它内部移动
+ */
 export const usePlayerStore = defineStore("player", {
   // 播放器状态
   state: () => ({

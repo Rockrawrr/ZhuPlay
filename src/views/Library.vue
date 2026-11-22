@@ -1,8 +1,11 @@
 <script setup>
+// 音乐库：导入本地音频、展示全部歌曲、收藏 / 添加到歌单 / 删除
+// pendingPlaylistSong 记录“正在加入歌单的那首歌”，非空时弹窗打开
 import { ref } from "vue";
 import { storeToRefs } from "pinia";
 import { Upload, Music2, ArrowLeft } from "lucide-vue-next";
 import SongItem from "@/components/SongItem.vue";
+import AddToPlaylistDialog from "@/components/AddToPlaylistDialog.vue";
 import { useMusicStore } from "@/stores/music";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useMusicActions } from "@/composables/useMusicActions";
@@ -16,6 +19,13 @@ const { importSongs, removeSong, toggleFavorite } = useMusicActions();
 const { canGoBack, goBack } = useNavigation();
 
 const fileInput = ref(null);
+
+// 正在添加到歌单的歌曲（null 时弹窗关闭）
+const pendingPlaylistSong = ref(null);
+
+function handleAddToPlaylist(song) {
+  pendingPlaylistSong.value = song;
+}
 
 function openFilePicker() {
   fileInput.value.click();
@@ -82,8 +92,15 @@ function onFileChange(event) {
         @play="(song) => playSong(song, songs)"
         @remove="removeSong"
         @toggle-favorite="toggleFavorite"
+        @add-to-playlist="handleAddToPlaylist"
       />
     </div>
+
+    <AddToPlaylistDialog
+      v-if="pendingPlaylistSong"
+      :song="pendingPlaylistSong"
+      @close="pendingPlaylistSong = null"
+    />
   </section>
 </template>
 

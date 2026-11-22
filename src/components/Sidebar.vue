@@ -1,4 +1,6 @@
 <script setup>
+// 侧边栏导航：只负责切页与“创建歌单”入口
+// 注意：「搜索」入口目前是占位，等功能实现后再接上
 import {
   Home,
   Search,
@@ -11,8 +13,22 @@ import {
   Download,
 } from "lucide-vue-next";
 import { useNavigation } from "@/composables/useNavigation";
+import { usePlaylistStore } from "@/stores/playlist";
+import { usePlaylistActions } from "@/composables/usePlaylistActions";
 
 const { currentPage, navigateTo } = useNavigation();
+const playlistStore = usePlaylistStore();
+const { createPlaylist } = usePlaylistActions();
+
+// 侧边栏「+」：直接建歌单并跳到歌单页
+async function handleCreatePlaylist() {
+  const name = window.prompt("新歌单名称", "新建歌单");
+  if (name === null) return;
+
+  const playlist = await createPlaylist(name);
+  playlistStore.setCurrentPlaylist(playlist.id);
+  navigateTo("playlists");
+}
 </script>
 
 <template>
@@ -60,7 +76,11 @@ const { currentPage, navigateTo } = useNavigation();
         >
           <Library :size="21" /><span>我的音乐库</span>
         </div>
-        <button class="icon-button" title="创建歌单">
+        <button
+          class="icon-button"
+          title="创建歌单"
+          @click="handleCreatePlaylist"
+        >
           <Plus :size="19" />
         </button>
       </div>
@@ -73,7 +93,12 @@ const { currentPage, navigateTo } = useNavigation();
       >
         <Heart :size="21" /><span>喜欢的音乐</span>
       </a>
-      <a class="nav-item" href="#" @click.prevent="navigateTo('library')">
+      <a
+        class="nav-item"
+        :class="{ active: currentPage === 'playlists' }"
+        href="#"
+        @click.prevent="navigateTo('playlists')"
+      >
         <ListMusic :size="21" /><span>我的歌单</span>
       </a>
     </div>

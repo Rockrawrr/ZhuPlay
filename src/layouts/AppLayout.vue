@@ -1,4 +1,7 @@
 <script setup>
+// 应用骨架：侧边栏 + 当前页 + 播放条
+// viewMap 是当前的“页面注册表”，新增页面时要在这里加一条，并在 Sidebar 加入口；
+// 接入 vue-router 后这层会被路由替换
 import { computed } from "vue";
 import { useNavigation } from "@/composables/useNavigation";
 import Sidebar from "@/components/Sidebar.vue";
@@ -8,6 +11,7 @@ import Library from "@/views/Library.vue";
 import Favorites from "@/views/Favorites.vue";
 import RecentPlayed from "@/views/RecentPlayed.vue";
 import RecentImported from "@/views/RecentImported.vue";
+import Playlists from "@/views/Playlists.vue";
 
 const viewMap = {
   home: Home,
@@ -15,6 +19,7 @@ const viewMap = {
   favorites: Favorites,
   "recent-played": RecentPlayed,
   "recent-imported": RecentImported,
+  playlists: Playlists,
 };
 
 const { currentPage } = useNavigation();

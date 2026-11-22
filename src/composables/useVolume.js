@@ -1,4 +1,9 @@
 // src/composables/useVolume.js
+/**
+ * 音量控制
+ * 职责：把 store 的音量/静音状态同步到 <audio>，并持久化（拖动时防抖写入）
+ * 注意：静音状态下拖动滑块会自动解除静音，避免“拖了没声音”的困惑
+ */
 import { usePlayerStore } from "@/stores/player";
 import { getAudioService, getMusicStorage } from "@/app/services";
 

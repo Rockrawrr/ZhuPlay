@@ -1,4 +1,9 @@
 // src/composables/useMusicActions.js
+/**
+ * 曲库业务动作
+ * 职责：导入（解析 + 落库）、收藏、删除歌曲、清空最近播放
+ * 边界：负责“改 store + 落库”，页面只调用这些动作，不直接写 IndexedDB
+ */
 import { storeToRefs } from "pinia";
 import { createSong, releaseSong } from "@/services/musicService";
 import { parseMusicMetadata } from "@/services/metadataService";

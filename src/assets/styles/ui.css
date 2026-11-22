@@ -1,0 +1,150 @@
+/* ==============================
+   ZhuPlay - UI Primitives
+   跨页面复用的基础控件（由 main.js 全局引入）
+   约定：页面里不要重复定义 .page-shell / .primary-button / .icon-action / .empty-state
+   ============================== */
+
+/* 页面外壳：撑满内容区、自带滚动与内边距 */
+.page-shell {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  padding: 28px 32px;
+  color: #fff;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.back-button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: #282828;
+  color: #b3b3b3;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.back-button:hover:not(:disabled) {
+  background: #383838;
+  color: #fff;
+}
+
+.back-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 22px;
+  background: var(--color-primary);
+  color: #000;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #3be477;
+  transform: scale(1.02);
+}
+
+.primary-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid #3a3a3a;
+  border-radius: 20px;
+  background: transparent;
+  color: #ddd;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.ghost-button:hover {
+  border-color: #666;
+  color: #fff;
+  background: #232323;
+}
+
+.ghost-button.danger:hover {
+  border-color: #b3413f;
+  color: #ff6b6b;
+}
+
+/* 圆形图标按钮 */
+.icon-action {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.icon-action:hover {
+  background: #282828;
+  color: #fff;
+}
+
+.icon-action.danger:hover {
+  color: #ff6b6b;
+}
+
+/* 空状态占位块 */
+.empty-state {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  border-radius: 12px;
+  background: #181818;
+  color: #888;
+  text-align: center;
+}
+
+.empty-state h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 17px;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.empty-state .primary-button {
+  margin-top: 8px;
+}
+
+@media (max-width: 700px) {
+  .page-shell {
+    padding: 20px 16px;
+  }
+}

@@ -1,4 +1,9 @@
 // src/app/useQueuePersistence.js
+/**
+ * 播放队列持久化
+ * 只存 songId 数组 + 当前下标；刷新后从曲库重新解引用（blob 地址本来就会失效）
+ * 恢复时只准备音频、不自动播放，避免被浏览器的自动播放策略拦截
+ */
 import { watch } from "vue";
 import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";

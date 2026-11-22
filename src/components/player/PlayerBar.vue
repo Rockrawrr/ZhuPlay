@@ -1,4 +1,6 @@
 <script setup>
+// 播放条容器：播放器里唯一持有 store 与 composable 的组件
+// 四个子组件（信息 / 控制 / 进度 / 音量）都是纯展示，通过 props 与 emit 通信
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { ListMusic } from "lucide-vue-next";

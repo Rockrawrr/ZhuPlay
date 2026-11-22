@@ -1,5 +1,7 @@
 <script setup>
-import { Music2, Trash2, Heart } from "lucide-vue-next";
+// 歌曲行（纯展示）：点击播放 / 收藏 / 添加到歌单 / 删除，全部通过 emit 交给父组件处理
+// 这样它既能用在音乐库，也能直接复用到别的列表
+import { Music2, Trash2, Heart, ListPlus } from "lucide-vue-next";
 
 const props = defineProps({
   song: {
@@ -16,7 +18,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["play", "remove", "toggle-favorite"]);
+const emit = defineEmits(["play", "remove", "toggle-favorite", "add-to-playlist"]);
 </script>
 
 <template>
@@ -51,6 +53,11 @@ const emit = defineEmits(["play", "remove", "toggle-favorite"]);
       @click="emit('toggle-favorite', song.id)"
     >
       <Heart :size="18" :fill="isFavorite ? '#1ed760' : 'none'" />
+    </button>
+
+    <!-- 添加到歌单 -->
+    <button class="add-button" title="添加到歌单" @click="emit('add-to-playlist', song)">
+      <ListPlus :size="18" />
     </button>
 
     <!-- 删除 -->
@@ -132,6 +139,7 @@ const emit = defineEmits(["play", "remove", "toggle-favorite"]);
 }
 
 .favorite-button,
+.add-button,
 .delete-button {
   width: 36px;
   height: 36px;
@@ -147,6 +155,10 @@ const emit = defineEmits(["play", "remove", "toggle-favorite"]);
 .favorite-button:hover,
 .favorite-button.active {
   color: #1ed760;
+}
+
+.add-button:hover {
+  color: #fff;
 }
 
 .delete-button:hover {
@@ -187,6 +199,7 @@ const emit = defineEmits(["play", "remove", "toggle-favorite"]);
   }
 
   .favorite-button,
+  .add-button,
   .delete-button {
     width: 30px;
     height: 34px;
