@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-vue-next";
 import SongRow from "@/components/common/SongRow.vue";
+import VirtualList from "@/components/common/VirtualList.vue";
 import { useMusicStore } from "@/stores/music";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useMusicActions } from "@/composables/useMusicActions";
@@ -173,26 +174,28 @@ function onDrop(event) {
       </div>
     </div>
 
-    <!-- 有歌时的列表 -->
+    <!-- 有歌时的列表：上万首也只渲染可视区 -->
     <div v-else class="song-list">
-      <SongRow
-        v-for="(song, index) in songs"
-        :key="song.id"
-        :song="song"
-        :index="index"
-        :is-favorite="favoriteSongs.includes(song.id)"
-        meta="size"
-        show-favorite
-        show-add-to-playlist
-        removable
-        remove-label="删除歌曲"
-        :remove-icon="Trash2"
-        @play="playSong(song, songs)"
-        @remove="removeSong(song.id)"
-        @toggle-favorite="toggleFavorite(song.id)"
-        @add-to-playlist="handleAddToPlaylist(song)"
-        @contextmenu.prevent="handleSongMenu($event, song)"
-      />
+      <VirtualList :items="songs" :item-height="60">
+        <template #default="{ item: song, index }">
+          <SongRow
+            :song="song"
+            :index="index"
+            :is-favorite="favoriteSongs.includes(song.id)"
+            meta="size"
+            show-favorite
+            show-add-to-playlist
+            removable
+            remove-label="删除歌曲"
+            :remove-icon="Trash2"
+            @play="playSong(song, songs)"
+            @remove="removeSong(song.id)"
+            @toggle-favorite="toggleFavorite(song.id)"
+            @add-to-playlist="handleAddToPlaylist(song)"
+            @contextmenu.prevent="handleSongMenu($event, song)"
+          />
+        </template>
+      </VirtualList>
     </div>
 
     <!-- 拖拽提示层 -->
@@ -400,26 +403,7 @@ function onDrop(event) {
 .song-list {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
   padding-right: 8px;
-}
-
-.song-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.song-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.song-list::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 4px;
-}
-
-.song-list::-webkit-scrollbar-thumb:hover {
-  background: #666;
 }
 
 /* ===== 拖拽层 ===== */

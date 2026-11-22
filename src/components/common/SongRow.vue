@@ -116,6 +116,8 @@ const emit = defineEmits([
 
 <style scoped>
 .song-row {
+  /* 固定行高：虚拟列表按 60px 计算位置，插槽内容不能超出 */
+  height: 60px;
   display: flex;
   align-items: center;
   gap: 10px;
