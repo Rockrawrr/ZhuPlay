@@ -1,28 +1,18 @@
 import { defineStore } from "pinia";
 
 export const useMusicStore = defineStore("music", {
-  // 音乐数据
   state: () => ({
-    // 全部音乐
     songs: [],
-
-    // 收藏歌曲 ID
-    favoriteSongs: [],
-
-    // 最近播放记录
-    recentSongs: [],
+    favoriteSongs: [], // 存 songId
+    recentSongs: [], // 存完整对象（兼容现有视图）
   }),
 
-  // 计算属性
   getters: {
-    // 最近导入的 6 首歌曲
     recentImportedSongs: (state) => {
       return [...state.songs]
         .sort((a, b) => (b.importedAt ?? 0) - (a.importedAt ?? 0))
         .slice(0, 6);
     },
-
-    // 获取收藏歌曲完整信息
     favoriteSongsList: (state) => {
       return state.songs.filter((song) =>
         state.favoriteSongs.includes(song.id),
@@ -30,9 +20,26 @@ export const useMusicStore = defineStore("music", {
     },
   },
 
-  // 数据操作
   actions: {
-    // 切换收藏状态
+    // ===== 音乐库 =====
+    setSongs(songs) {
+      this.songs = Array.isArray(songs) ? songs : [];
+    },
+    addSongs(newSongs) {
+      if (!Array.isArray(newSongs) || newSongs.length === 0) return;
+      this.songs.push(...newSongs);
+    },
+    // 删除歌曲：同时清理音乐库、收藏、最近播放三处引用
+    removeSong(songId) {
+      this.songs = this.songs.filter((s) => s.id !== songId);
+      this.favoriteSongs = this.favoriteSongs.filter((id) => id !== songId);
+      this.recentSongs = this.recentSongs.filter((s) => s.id !== songId);
+    },
+
+    // ===== 收藏 =====
+    setFavorites(ids) {
+      this.favoriteSongs = Array.isArray(ids) ? ids : [];
+    },
     toggleFavorite(songId) {
       if (this.favoriteSongs.includes(songId)) {
         this.favoriteSongs = this.favoriteSongs.filter((id) => id !== songId);
@@ -41,22 +48,24 @@ export const useMusicStore = defineStore("music", {
       }
     },
 
-    // 添加最近播放记录
+    // ===== 最近播放 =====
+    // 接收 songId 数组（来自 IndexedDB），解析成完整对象
+    setRecentSongs(songIds) {
+      const ids = Array.isArray(songIds) ? songIds : [];
+      this.recentSongs = ids
+        .map((id) => this.songs.find((s) => s.id === id))
+        .filter(Boolean);
+    },
     addRecentSong(song) {
+      if (!song) return;
       this.recentSongs = [
         song,
         ...this.recentSongs.filter((item) => item.id !== song.id),
-      ].slice(0, 50); // 保留最近 50 条记录
+      ].slice(0, 50);
     },
-
-    // 删除指定歌曲的最近播放记录
-removeRecentSong(songId) {
-  this.recentSongs = this.recentSongs.filter(
-    (song) => song.id !== songId
-  );
-},
-
-    // 清空最近播放记录
+    removeRecentSong(songId) {
+      this.recentSongs = this.recentSongs.filter((s) => s.id !== songId);
+    },
     clearRecentSongs() {
       this.recentSongs = [];
     },

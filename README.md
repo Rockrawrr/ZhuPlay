@@ -21,7 +21,8 @@ zhuplay
 │  ├─ composables
 │  │  ├─ useAudioPlayer.js
 │  │  ├─ useMusicActions.js
-│  │  └─ useMusicInitialization.js
+│  │  ├─ useMusicInitialization.js
+│  │  └─ useNavigation.js
 │  ├─ layouts
 │  │  └─ AppLayout.vue
 │  ├─ main.js

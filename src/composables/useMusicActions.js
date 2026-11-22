@@ -1,18 +1,19 @@
+import { createSong, releaseSong } from "@/services/musicService";
+import { parseMusicMetadata } from "@/services/metadataService";
+import { getMusicStorage } from "@/app/services";
+import { useMusicStore } from "@/stores/music";
+import { usePlayerStore } from "@/stores/player";
+import { storeToRefs } from "pinia";
 
-import { createSong, releaseSong } from "../services/musicService";
-import { parseMusicMetadata } from "../services/metadataService";
+export function useMusicActions({ songs, currentSong, audioService } = {}) {
+  const musicStore = useMusicStore();
+  const playerStore = usePlayerStore();
+  const musicStorage = getMusicStorage();
 
-// 音乐业务操作
-export function useMusicActions({
-  musicStore,
-  musicStorage,
-  songs,
-  currentSong,
-  audioService,
-  playerStore,
-}) {
+  // 兼容外部仍传 songs/currentSong；未传则内部从 store 取
+  const songsRef = songs ?? storeToRefs(musicStore).songs;
+  const currentSongRef = currentSong ?? storeToRefs(playerStore).currentSong;
 
-  // 导入音乐文件
   async function importSongs(files) {
     const newSongs = await Promise.all(
       Array.from(files).map(async (file) => {
@@ -26,7 +27,6 @@ export function useMusicActions({
       }),
     );
 
-    // 保存歌曲到 IndexedDB
     for (const song of newSongs) {
       try {
         await musicStorage.saveSong(song);
@@ -35,14 +35,11 @@ export function useMusicActions({
       }
     }
 
-    // 添加到音乐库
-    songs.value.push(...newSongs);
+    musicStore.addSongs(newSongs);
   }
 
-  // 切换收藏状态并保存到本地数据库
   async function toggleFavorite(songId) {
     musicStore.toggleFavorite(songId);
-
     try {
       await musicStorage.saveMusicData("favorites", [
         ...musicStore.favoriteSongs,
@@ -52,28 +49,20 @@ export function useMusicActions({
     }
   }
 
-  // 清空最近播放记录
   function clearRecentSongs() {
-    const confirmed = window.confirm("确定清空最近播放记录吗？");
-
-    if (!confirmed) return;
-
+    if (!window.confirm("确定清空最近播放记录吗？")) return;
     musicStore.clearRecentSongs();
   }
 
-  // 删除歌曲
   async function removeSong(id) {
-    const song = songs.value.find((item) => item.id === id);
-
+    const song = songsRef.value.find((item) => item.id === id);
     if (!song) return;
 
-    // 如果删除的是当前播放歌曲，停止播放
-    if (currentSong.value?.id === id) {
-      audioService.stop();
+    if (currentSongRef.value?.id === id) {
+      audioService?.stop();
       playerStore.resetPlayer();
     }
 
-    // 从 IndexedDB 删除歌曲
     try {
       await musicStorage.deleteSong(id);
     } catch (error) {
@@ -81,30 +70,15 @@ export function useMusicActions({
       return;
     }
 
-    // 从音乐列表中删除
-    songs.value = songs.value.filter((item) => item.id !== id);
+    // 一次清理音乐库、收藏、最近播放
+    musicStore.removeSong(id);
 
-    // 从最近播放记录中删除
-    musicStore.removeRecentSong(id);
-
-    // 从收藏列表中删除
-    musicStore.favoriteSongs = musicStore.favoriteSongs.filter(
-      (favoriteId) => favoriteId !== id,
-    );
-
-    // 同步保存收藏数据
     await musicStorage.saveMusicData("favorites", [
       ...musicStore.favoriteSongs,
     ]);
 
-    // 释放歌曲资源
     releaseSong(song);
   }
 
-  return {
-    importSongs,
-    toggleFavorite,
-    clearRecentSongs,
-    removeSong,
-  };
+  return { importSongs, toggleFavorite, clearRecentSongs, removeSong };
 }
