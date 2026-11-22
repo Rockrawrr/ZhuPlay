@@ -1,4 +1,4 @@
 // src/stores/index.js
 export { useMusicStore } from "./music";
 export { usePlayerStore } from "./player";
-// export { usePlaylistStore } from './playlist' // 待 playlist store 实现后开启
+// 歌单功能实现时：新建 stores/playlist.js，并在此补上导出
