@@ -114,6 +114,15 @@ let tray = null;
 let isQuitting = false;
 let hasNotifiedTray = false;
 
+// 图标路径：开发期读源码目录；打包后读 resources（extraResources 放了一份，避免 asar 内路径问题）
+function resolveIconPath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "icon.ico");
+  }
+
+  return path.join(__dirname, "..", "build", "icon.ico");
+}
+
 // 统一入口：把主窗口显示出来（隐藏 / 最小化 / 已销毁都要处理）
 function showMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) {
@@ -129,8 +138,11 @@ function showMainWindow() {
 // ===== 托盘 =====
 
 function createTray() {
-  const iconPath = path.join(__dirname, "..", "build", "icon.ico");
-  const image = nativeImage.createFromPath(iconPath);
+  const image = nativeImage.createFromPath(resolveIconPath());
+
+  if (image.isEmpty()) {
+    console.warn("托盘图标加载失败：", resolveIconPath());
+  }
 
   tray = new Tray(image.resize({ width: 16, height: 16 }));
   tray.setToolTip("ZhuPlay");
@@ -273,7 +285,7 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     title: "ZhuPlay",
-    icon: path.join(__dirname, "..", "build", "icon.ico"),
+    icon: resolveIconPath(),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,

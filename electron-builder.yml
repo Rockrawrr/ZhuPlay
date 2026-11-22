@@ -12,6 +12,11 @@ files:
   - electron/**/*
   - package.json
 
+# 托盘 / 窗口图标放在 asar 外，主进程按 process.resourcesPath 读取
+extraResources:
+  - from: build/icon.ico
+    to: icon.ico
+
 asar: true
 compression: normal
 
