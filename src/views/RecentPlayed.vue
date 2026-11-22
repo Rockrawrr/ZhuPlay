@@ -1,36 +1,31 @@
 <script setup>
+import { storeToRefs } from "pinia";
 import { Clock3, Music2, Play, Trash2, ArrowLeft } from "lucide-vue-next";
+import { useMusicStore } from "@/stores/music";
+import { useAudioPlayer } from "@/composables/useAudioPlayer";
+import { useMusicActions } from "@/composables/useMusicActions";
+import { useNavigation } from "@/composables/useNavigation";
 
-// 接收 App.vue 传递的数据
-const props = defineProps({
-  songs: {
-    type: Array,
-    default: () => [],
-  },
-  canGoBack: {
-    type: Boolean,
-    default: false,
-  },
-});
+const musicStore = useMusicStore();
+const { recentSongs } = storeToRefs(musicStore);
 
-// 向 App.vue 发送操作事件
-const emit = defineEmits(["play-song", "clear-recent", "go-back"]);
+const { playSong } = useAudioPlayer();
+const { clearRecentSongs } = useMusicActions();
+const { canGoBack, goBack } = useNavigation();
 </script>
 
 <template>
   <main class="recent-played">
-    <!-- 页面顶部 -->
     <header class="page-header">
       <div class="page-heading">
         <button
           class="back-button"
           :disabled="!canGoBack"
           title="返回上一页"
-          @click="emit('go-back')"
+          @click="goBack"
         >
           <ArrowLeft :size="19" />
         </button>
-
         <div>
           <h2>最近播放</h2>
           <p>查看你最近听过的音乐</p>
@@ -38,31 +33,25 @@ const emit = defineEmits(["play-song", "clear-recent", "go-back"]);
       </div>
 
       <div class="page-actions">
-        <span class="song-count"> 共 {{ songs.length }} 条记录 </span>
-
+        <span class="song-count">共 {{ recentSongs.length }} 条记录</span>
         <button
-          v-if="songs.length > 0"
+          v-if="recentSongs.length > 0"
           class="clear-button"
-          @click="emit('clear-recent')"
+          @click="clearRecentSongs"
         >
-          <Trash2 :size="16" />
-          清空记录
+          <Trash2 :size="16" /> 清空记录
         </button>
       </div>
     </header>
 
-    <!-- 歌曲列表 -->
-    <div v-if="songs.length > 0" class="song-list">
+    <div v-if="recentSongs.length > 0" class="song-list">
       <button
-        v-for="(song, index) in songs"
+        v-for="(song, index) in recentSongs"
         :key="song.id"
         class="song-item"
-        @click="emit('play-song', song)"
+        @click="playSong(song)"
       >
-        <span class="song-index">
-          {{ index + 1 }}
-        </span>
-
+        <span class="song-index">{{ index + 1 }}</span>
         <div class="song-cover">
           <img
             v-if="song.coverUrl"
@@ -71,23 +60,15 @@ const emit = defineEmits(["play-song", "clear-recent", "go-back"]);
           />
           <Music2 v-else :size="20" />
         </div>
-
         <div class="song-info">
           <div class="song-name">{{ song.name }}</div>
-          <div class="song-artist">
-            {{ song.artist || song.filename }}
-          </div>
+          <div class="song-artist">{{ song.artist || song.filename }}</div>
         </div>
-
-        <span class="song-format">
-          {{ song.format?.toUpperCase() }}
-        </span>
-
+        <span class="song-format">{{ song.format?.toUpperCase() }}</span>
         <Play :size="18" class="play-icon" />
       </button>
     </div>
 
-    <!-- 空状态 -->
     <div v-else class="empty-state">
       <Clock3 :size="48" />
       <h3>还没有播放记录</h3>

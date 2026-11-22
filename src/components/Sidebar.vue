@@ -10,99 +10,71 @@ import {
   Clock3,
   Download,
 } from "lucide-vue-next";
+import { useNavigation } from "@/composables/useNavigation";
 
-defineProps({
-  currentPage: {
-    type: String,
-    default: "home",
-  },
-});
-
-const emit = defineEmits(["navigate"]);
+const { currentPage, navigateTo } = useNavigation();
 </script>
 
 <template>
   <aside class="sidebar">
-    <!-- 品牌区域 -->
     <div class="brand">
       <Music2 :size="28" />
       <span>竹</span>
     </div>
 
-    <!-- 主导航 -->
     <nav class="nav-menu">
-      <!-- 首页 -->
       <a
         class="nav-item"
         :class="{ active: currentPage === 'home' }"
         href="#"
-        @click.prevent="emit('navigate', 'home')"
+        @click.prevent="navigateTo('home')"
       >
-        <Home :size="21" />
-        <span>首页</span>
+        <Home :size="21" /><span>首页</span>
       </a>
-
-      <!-- 最近播放 -->
       <a
         class="nav-item"
         :class="{ active: currentPage === 'recent-played' }"
         href="#"
-        @click.prevent="emit('navigate', 'recent-played')"
+        @click.prevent="navigateTo('recent-played')"
       >
-        <Clock3 :size="21" />
-        <span>最近播放</span>
+        <Clock3 :size="21" /><span>最近播放</span>
       </a>
-
       <a
         class="nav-item"
         :class="{ active: currentPage === 'recent-imported' }"
         href="#"
-        @click.prevent="emit('navigate', 'recent-imported')"
+        @click.prevent="navigateTo('recent-imported')"
       >
-        <Download :size="21" />
-        <span>最近导入</span>
+        <Download :size="21" /><span>最近导入</span>
       </a>
-
-      <!-- 搜索 -->
-      <a class="nav-item" href="#">
-        <Search :size="21" />
-        <span>搜索</span>
-      </a>
+      <a class="nav-item" href="#"> <Search :size="21" /><span>搜索</span> </a>
     </nav>
 
-    <!-- 音乐库 -->
     <div class="library-section">
       <div class="library-header">
         <div
           class="library-title"
           :class="{ active: currentPage === 'library' }"
-          @click="emit('navigate', 'library')"
+          @click="navigateTo('library')"
           style="cursor: pointer"
         >
-          <Library :size="21" />
-          <span>我的音乐库</span>
+          <Library :size="21" /><span>我的音乐库</span>
         </div>
-
         <button class="icon-button" title="创建歌单">
           <Plus :size="19" />
         </button>
       </div>
 
-      <!-- 喜欢的音乐 -->
       <a
         class="nav-item"
         :class="{ active: currentPage === 'favorites' }"
         href="#"
-        @click.prevent="emit('navigate', 'favorites')"
+        @click.prevent="navigateTo('favorites')"
       >
-        <Heart :size="21" />
-        <span>喜欢的音乐</span>
+        <Heart :size="21" /><span>喜欢的音乐</span>
       </a>
-
-      <!-- 我的歌单 -->
-      <a class="nav-item" href="#" @click.prevent="emit('navigate', 'library')">
-        <ListMusic :size="21" />
-        <span>我的歌单</span>
+      <a class="nav-item" href="#" @click.prevent="navigateTo('library')">
+        <ListMusic :size="21" /><span>我的歌单</span>
       </a>
     </div>
   </aside>

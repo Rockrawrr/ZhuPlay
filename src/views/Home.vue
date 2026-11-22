@@ -1,6 +1,11 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed } from "vue";
+import { storeToRefs } from "pinia";
 import { Clock3, Play, Music2, ArrowLeft, ArrowRight } from "lucide-vue-next";
+import { useMusicStore } from "@/stores/music";
+import { useAudioPlayer } from "@/composables/useAudioPlayer";
+import { useMusicActions } from "@/composables/useMusicActions";
+import { useNavigation } from "@/composables/useNavigation";
 
 const albums = [
   { id: 1, title: "最近播放", description: "继续聆听你的音乐" },
@@ -9,99 +14,55 @@ const albums = [
   { id: 6, title: "全部歌曲", description: "浏览你的本地音乐" },
 ];
 
-// 接收 App.vue 传递的数据
-const props = defineProps({
-  recentSongs: {
-    type: Array,
-    default: () => [],
-  },
-  recentImportedSongs: {
-    type: Array,
-    default: () => [],
-  },
-  favoriteSongs: {
-    type: Array,
-    default: () => [],
-  },
-  canGoBack: {
-    type: Boolean,
-    default: false,
-  },
-  songs: {
-    type: Array,
-    default: () => [],
-  },
-});
-const emit = defineEmits(["navigate", "play-song", "go-back", "clear-recent"]);
+const musicStore = useMusicStore();
+const { songs, recentSongs, recentImportedSongs, favoriteSongsList } =
+  storeToRefs(musicStore);
 
-// 清空最近播放
-function clearRecent() {
-  emit("clear-recent");
-}
+const { playSong } = useAudioPlayer();
+const { clearRecentSongs } = useMusicActions();
+const { canGoBack, goBack, navigateTo } = useNavigation();
+
+// 收藏 ID 集合，供模板快速判断
+const favoriteIds = computed(
+  () => new Set(favoriteSongsList.value.map((song) => song.id)),
+);
 
 // 首页精选歌曲
 const featuredSongs = computed(() => {
-  // 按导入时间倒序排列
-  const latestSongs = [...props.songs].reverse();
-
-  // 获取收藏歌曲 ID
-  const favoriteIds = new Set(props.favoriteSongs.map((song) => song.id));
-
-  // 收藏歌曲优先
-  const favoriteList = latestSongs.filter((song) => favoriteIds.has(song.id));
-
-  // 其他歌曲补充
-  const otherList = latestSongs.filter((song) => !favoriteIds.has(song.id));
-
+  const latestSongs = [...songs.value].reverse();
+  const favoriteList = latestSongs.filter((song) =>
+    favoriteIds.value.has(song.id),
+  );
+  const otherList = latestSongs.filter(
+    (song) => !favoriteIds.value.has(song.id),
+  );
   return [...favoriteList, ...otherList].slice(0, 6);
 });
 
 // 首页快捷播放
 function handleQuickPlay(id) {
   let song = null;
-
-  if (id === 1) {
-    song = props.recentSongs[0];
-  } else if (id === 2) {
-    song = props.recentImportedSongs[0];
-  } else if (id === 4) {
-    song = props.favoriteSongs[0];
-  } else if (id === 6) {
-    song = props.songs[0];
-  }
-
-  // 有歌曲时才执行播放
-  if (song) {
-    emit("play-song", song);
-  }
+  if (id === 1) song = recentSongs.value[0];
+  else if (id === 2) song = recentImportedSongs.value[0];
+  else if (id === 4) song = favoriteSongsList.value[0];
+  else if (id === 6) song = songs.value[0];
+  if (song) playSong(song);
 }
 
 // 处理首页快捷入口点击
 function handleQuickCardClick(id) {
-  // 最近播放：跳转到最近播放区域
   if (id === 1) {
-    document.getElementById("recent-played")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }
-
-  // 最近导入：跳转到最近导入区域
-  else if (id === 2) {
-    document.getElementById("recent-imported")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }
-
-  // 我的收藏：进入喜欢的音乐页面
-  else if (id === 4) {
-    emit("navigate", "favorites");
-  }
-
-  // 全部歌曲：进入音乐库
-  else if (id === 6) {
-    emit("navigate", "library");
+    document
+      .getElementById("recent-played")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else if (id === 2) {
+    document
+      .getElementById("recent-imported")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else if (id === 4) {
+    navigateTo("favorites");
+  } else if (id === 6) {
+    navigateTo("library");
   }
 }
 </script>
@@ -110,11 +71,7 @@ function handleQuickCardClick(id) {
   <main class="main-content">
     <header class="top-bar">
       <div class="history-buttons">
-        <button
-          :disabled="!canGoBack"
-          title="返回上一页"
-          @click="emit('go-back')"
-        >
+        <button :disabled="!canGoBack" title="返回上一页" @click="goBack">
           <ArrowLeft :size="19" />
         </button>
 
@@ -150,16 +107,15 @@ function handleQuickCardClick(id) {
       <div class="section-header">
         <h2>为你推荐</h2>
 
-        <button @click="emit('navigate', 'recent-imported')">查看全部</button>
+        <button @click="navigateTo('recent-imported')">查看全部</button>
       </div>
 
-      <!-- 有歌曲时展示精选歌曲 -->
       <div v-if="featuredSongs.length > 0" class="album-grid">
         <article
           v-for="song in featuredSongs"
           :key="song.id"
           class="album-card"
-          @click="emit('play-song', song)"
+          @click="playSong(song)"
         >
           <div class="album-cover">
             <Music2 :size="48" />
@@ -167,7 +123,7 @@ function handleQuickCardClick(id) {
             <button
               class="featured-play"
               :title="`播放${song.name}`"
-              @click.stop="emit('play-song', song)"
+              @click.stop="playSong(song)"
             >
               <Play :size="18" fill="currentColor" />
             </button>
@@ -176,16 +132,11 @@ function handleQuickCardClick(id) {
           <h3>{{ song.name }}</h3>
 
           <p>
-            {{
-              props.favoriteSongs.some((item) => item.id === song.id)
-                ? "喜欢的音乐"
-                : "本地音乐"
-            }}
+            {{ favoriteIds.has(song.id) ? "喜欢的音乐" : "本地音乐" }}
           </p>
         </article>
       </div>
 
-      <!-- 没有歌曲时展示空状态 -->
       <div v-else class="empty-state">
         <Music2 :size="42" />
         <p>暂无推荐歌曲</p>
@@ -193,11 +144,10 @@ function handleQuickCardClick(id) {
       </div>
     </section>
 
-    <!-- 最近导入 -->
     <section id="recent-imported" class="recent-section">
       <div class="section-header">
         <h2>最近导入</h2>
-        <button @click="emit('navigate', 'recent-imported')">查看全部</button>
+        <button @click="navigateTo('recent-imported')">查看全部</button>
       </div>
 
       <div v-if="recentImportedSongs.length > 0" class="recent-list">
@@ -205,7 +155,7 @@ function handleQuickCardClick(id) {
           v-for="(song, index) in recentImportedSongs"
           :key="song.id"
           class="recent-item"
-          @click="emit('play-song', song)"
+          @click="playSong(song)"
         >
           <span class="recent-index">{{ index + 1 }}</span>
 
@@ -234,13 +184,13 @@ function handleQuickCardClick(id) {
         <h2>最近播放</h2>
 
         <div v-if="recentSongs.length > 0" class="recent-actions">
-          <button class="clear-recent-button" @click="clearRecent">
+          <button class="clear-recent-button" @click="clearRecentSongs">
             清空记录
           </button>
 
           <button
             v-if="recentSongs.length > 6"
-            @click="emit('navigate', 'recent-played')"
+            @click="navigateTo('recent-played')"
           >
             查看全部
           </button>
@@ -248,12 +198,13 @@ function handleQuickCardClick(id) {
 
         <Clock3 v-else :size="20" />
       </div>
+
       <div v-if="recentSongs.length > 0" class="recent-list">
         <button
           v-for="(song, index) in recentSongs.slice(0, 6)"
           :key="song.id"
           class="recent-item"
-          @click="emit('play-song', song)"
+          @click="playSong(song)"
         >
           <span class="recent-index">{{ index + 1 }}</span>
 

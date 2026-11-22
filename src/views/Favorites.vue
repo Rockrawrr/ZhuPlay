@@ -1,20 +1,17 @@
 <script setup>
+import { storeToRefs } from "pinia";
 import { Music2, Heart, ArrowLeft } from "lucide-vue-next";
+import { useMusicStore } from "@/stores/music";
+import { useAudioPlayer } from "@/composables/useAudioPlayer";
+import { useMusicActions } from "@/composables/useMusicActions";
+import { useNavigation } from "@/composables/useNavigation";
 
-// 接收 App.vue 传递的收藏歌曲
-defineProps({
-  songs: {
-    type: Array,
-    default: () => [],
-  },
-  canGoBack: {
-    type: Boolean,
-    default: false,
-  },
-});
+const musicStore = useMusicStore();
+const { favoriteSongsList } = storeToRefs(musicStore);
 
-// 向 App.vue 发送操作事件
-const emit = defineEmits(["play-song", "toggle-favorite", "go-back"]);
+const { playSong } = useAudioPlayer();
+const { toggleFavorite } = useMusicActions();
+const { canGoBack, goBack } = useNavigation();
 </script>
 
 <template>
@@ -24,48 +21,46 @@ const emit = defineEmits(["play-song", "toggle-favorite", "go-back"]);
         class="back-button"
         :disabled="!canGoBack"
         title="返回上一页"
-        @click="emit('go-back')"
+        @click="goBack"
       >
         <ArrowLeft :size="19" />
       </button>
     </div>
+
     <div class="page-header">
       <div class="favorite-cover">
         <Heart :size="48" fill="#fff" />
       </div>
-
       <div class="header-info">
         <span>歌单</span>
         <h2>喜欢的音乐</h2>
-        <p>你收藏的所有歌曲 · {{ songs.length }} 首歌曲</p>
+        <p>你收藏的所有歌曲 · {{ favoriteSongsList.length }} 首歌曲</p>
       </div>
     </div>
 
-    <div v-if="songs.length === 0" class="empty-favorites">
+    <div v-if="favoriteSongsList.length === 0" class="empty-favorites">
       <Heart :size="42" />
       <h3>还没有喜欢的音乐</h3>
       <p>在音乐库或播放器中点击爱心，收藏你喜欢的歌曲</p>
     </div>
 
     <div v-else class="song-list">
-      <div v-for="(song, index) in songs" :key="song.id" class="song-item">
+      <div
+        v-for="(song, index) in favoriteSongsList"
+        :key="song.id"
+        class="song-item"
+      >
         <span class="song-index">{{ index + 1 }}</span>
-
-        <div class="song-icon">
-          <Music2 :size="20" />
-        </div>
-
-        <div class="song-info" @click="emit('play-song', song)">
+        <div class="song-icon"><Music2 :size="20" /></div>
+        <div class="song-info" @click="playSong(song)">
           <div class="song-name">{{ song.name }}</div>
           <div class="song-filename">{{ song.filename }}</div>
         </div>
-
         <span class="song-size">{{ song.size }}</span>
-
         <button
           class="favorite-button"
           title="取消喜欢"
-          @click="emit('toggle-favorite', song.id)"
+          @click="toggleFavorite(song.id)"
         >
           <Heart :size="18" fill="#1ed760" />
         </button>

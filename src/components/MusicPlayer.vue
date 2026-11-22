@@ -1,4 +1,5 @@
 <script setup>
+import { storeToRefs } from "pinia";
 import {
   Play,
   Pause,
@@ -11,79 +12,39 @@ import {
   ListMusic,
   Music2,
 } from "lucide-vue-next";
+import { usePlayerStore } from "@/stores/player";
+import { useMusicStore } from "@/stores/music";
+import { useAudioPlayer } from "@/composables/useAudioPlayer";
+import { useMusicActions } from "@/composables/useMusicActions";
 
-// 接收 App.vue 传递的数据
-const props = defineProps({
-  currentSong: {
-    type: Object,
-    default: null,
-  },
-  isPlaying: {
-    type: Boolean,
-    default: false,
-  },
-  currentTime: {
-    type: Number,
-    default: 0,
-  },
-  duration: {
-    type: Number,
-    default: 0,
-  },
-  favoriteSongs: {
-    type: Array,
-    default: () => [],
-  },
-  isShuffle: {
-    type: Boolean,
-    default: false,
-  },
-  repeatMode: {
-    type: String,
-    default: "all",
-  },
-});
+const playerStore = usePlayerStore();
+const musicStore = useMusicStore();
 
-// 向 App.vue 发送操作事件
-const emit = defineEmits([
-  "toggle-play",
-  "seek",
-  "previous",
-  "next",
-  "shuffle-change",
-  "repeat-change",
-  "toggle-favorite",
-]);
+const { currentSong, isPlaying, isShuffle, repeatMode, currentTime, duration } =
+  storeToRefs(playerStore);
+const { favoriteSongs } = storeToRefs(musicStore);
 
-// 切换循环模式
+const { togglePlay, seek, playPrevious, playNext } = useAudioPlayer();
+const { toggleFavorite } = useMusicActions();
+
 function toggleRepeat() {
   let nextMode;
-
-  if (props.repeatMode === "all") {
-    nextMode = "one";
-  } else if (props.repeatMode === "one") {
-    nextMode = "off";
-  } else {
-    nextMode = "all";
-  }
-
-  emit("repeat-change", nextMode);
+  if (repeatMode.value === "all") nextMode = "one";
+  else if (repeatMode.value === "one") nextMode = "off";
+  else nextMode = "all";
+  playerStore.setRepeatMode(nextMode);
 }
 
-// 将秒数转换为 分:秒 格式
 function formatTime(time) {
   if (!Number.isFinite(time) || time < 0) return "0:00";
-
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.floor(time % 60);
-
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  const m = Math.floor(time / 60);
+  const s = Math.floor(time % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 </script>
 
 <template>
   <footer class="music-player">
-    <!-- 当前歌曲 -->
     <div class="track-info">
       <div class="track-cover">
         <img
@@ -91,7 +52,6 @@ function formatTime(time) {
           :src="currentSong.coverUrl"
           :alt="currentSong.album || currentSong.name"
         />
-
         <Music2 v-else :size="24" />
       </div>
 
@@ -102,23 +62,16 @@ function formatTime(time) {
         >
           <div
             class="track-name-marquee"
-            :class="{
-              scrolling: currentSong && currentSong.name.length > 12,
-            }"
+            :class="{ scrolling: currentSong && currentSong.name.length > 12 }"
           >
-            <span>
-              {{ currentSong ? currentSong.name : "尚未播放歌曲" }}
-            </span>
-
+            <span>{{ currentSong ? currentSong.name : "尚未播放歌曲" }}</span>
             <span
               v-if="currentSong && currentSong.name.length > 12"
               aria-hidden="true"
+              >{{ currentSong.name }}</span
             >
-              {{ currentSong.name }}
-            </span>
           </div>
         </div>
-
         <div class="track-artist">
           {{
             currentSong
@@ -139,7 +92,7 @@ function formatTime(time) {
             ? '取消喜欢'
             : '添加喜欢'
         "
-        @click="emit('toggle-favorite', currentSong.id)"
+        @click="toggleFavorite(currentSong.id)"
       >
         <Heart
           :size="19"
@@ -152,37 +105,31 @@ function formatTime(time) {
       </button>
     </div>
 
-    <!-- 播放控制 -->
     <div class="player-center">
       <div class="player-controls">
         <button
           class="player-icon"
           :class="{ active: isShuffle }"
-          @click="emit('shuffle-change', !isShuffle)"
+          @click="playerStore.setShuffle(!isShuffle)"
           :title="isShuffle ? '关闭随机播放' : '开启随机播放'"
         >
           <Shuffle :size="17" />
         </button>
-
-        <button class="player-icon" @click="emit('previous')">
+        <button class="player-icon" @click="playPrevious">
           <SkipBack :size="20" />
         </button>
-
         <button
           class="play-button"
           :disabled="!currentSong"
-          @click="emit('toggle-play')"
+          @click="togglePlay"
           :title="isPlaying ? '暂停' : '播放'"
         >
           <Pause v-if="isPlaying" :size="20" fill="currentColor" />
-
           <Play v-else :size="20" fill="currentColor" />
         </button>
-
-        <button class="player-icon" @click="emit('next')">
+        <button class="player-icon" @click="playNext">
           <SkipForward :size="20" />
         </button>
-
         <button
           class="player-icon"
           :class="{ active: repeatMode !== 'off' }"
@@ -202,7 +149,6 @@ function formatTime(time) {
 
       <div class="progress-container">
         <span>{{ formatTime(currentTime) }}</span>
-
         <input
           class="progress-slider"
           type="range"
@@ -210,21 +156,16 @@ function formatTime(time) {
           :max="duration || 0"
           :value="currentTime"
           :disabled="!duration"
-          @input="emit('seek', Number($event.target.value))"
+          @input="seek(Number($event.target.value))"
         />
-
         <span>{{ formatTime(duration) }}</span>
       </div>
     </div>
 
-    <!-- 音量控制 -->
     <div class="player-right">
       <ListMusic :size="19" />
       <Volume2 :size="19" />
-
-      <div class="volume-track">
-        <div class="volume-fill"></div>
-      </div>
+      <div class="volume-track"><div class="volume-fill"></div></div>
     </div>
   </footer>
 </template>

@@ -1,63 +1,33 @@
 <script setup>
-import Sidebar from "../components/Sidebar.vue";
-import Home from "../views/Home.vue";
-import Library from "../views/Library.vue";
-import Favorites from "../views/Favorites.vue";
-import RecentPlayed from "../views/RecentPlayed.vue";
-import RecentImported from "../views/RecentImported.vue";
-import MusicPlayer from "../components/MusicPlayer.vue";
+import { computed } from "vue";
+import { useNavigation } from "@/composables/useNavigation";
+import Sidebar from "@/components/Sidebar.vue";
+import MusicPlayer from "@/components/MusicPlayer.vue";
+import Home from "@/views/Home.vue";
+import Library from "@/views/Library.vue";
+import Favorites from "@/views/Favorites.vue";
+import RecentPlayed from "@/views/RecentPlayed.vue";
+import RecentImported from "@/views/RecentImported.vue";
 
-defineProps({
-  currentPage: String,
-  pageData: Object,
-  pageActions: Object,
-  playerProps: Object,
-  playerActions: Object,
-});
+const viewMap = {
+  home: Home,
+  library: Library,
+  favorites: Favorites,
+  "recent-played": RecentPlayed,
+  "recent-imported": RecentImported,
+};
 
-defineEmits(["navigate"]);
+const { currentPage } = useNavigation();
+const currentView = computed(() => viewMap[currentPage.value] ?? Home);
 </script>
 
 <template>
   <div class="app-layout">
     <div class="app-body">
-      <Sidebar
-        :current-page="currentPage"
-        @navigate="$emit('navigate', $event)"
-      />
-
-      <Home
-        v-if="currentPage === 'home'"
-        v-bind="pageData.home"
-        v-on="pageActions.home"
-      />
-
-      <RecentPlayed
-        v-else-if="currentPage === 'recent-played'"
-        v-bind="pageData.recentPlayed"
-        v-on="pageActions.recentPlayed"
-      />
-
-      <RecentImported
-        v-else-if="currentPage === 'recent-imported'"
-        v-bind="pageData.recentImported"
-        v-on="pageActions.recentImported"
-      />
-
-      <Library
-        v-else-if="currentPage === 'library'"
-        v-bind="pageData.library"
-        v-on="pageActions.library"
-      />
-
-      <Favorites
-        v-else-if="currentPage === 'favorites'"
-        v-bind="pageData.favorites"
-        v-on="pageActions.favorites"
-      />
+      <Sidebar />
+      <component :is="currentView" />
     </div>
-
-    <MusicPlayer v-bind="playerProps" v-on="playerActions" />
+    <MusicPlayer />
   </div>
 </template>
 

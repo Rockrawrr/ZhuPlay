@@ -1,60 +1,32 @@
 <script setup>
 import { ref } from "vue";
-import { Upload, Music2, Trash2, Heart, ArrowLeft } from "lucide-vue-next";
-import SongItem from "../components/SongItem.vue";
+import { storeToRefs } from "pinia";
+import { Upload, Music2, ArrowLeft } from "lucide-vue-next";
+import SongItem from "@/components/SongItem.vue";
+import { useMusicStore } from "@/stores/music";
+import { useAudioPlayer } from "@/composables/useAudioPlayer";
+import { useMusicActions } from "@/composables/useMusicActions";
+import { useNavigation } from "@/composables/useNavigation";
 
-// 接收 App.vue 传递过来的歌曲列表
-const props = defineProps({
-  songs: {
-    type: Array,
-    default: () => [],
-  },
-  favoriteSongs: {
-    type: Array,
-    default: () => [],
-  },
-  canGoBack: {
-    type: Boolean,
-    default: false,
-  },
-});
+const musicStore = useMusicStore();
+const { songs, favoriteSongs } = storeToRefs(musicStore);
 
-// 向 App.vue 发送操作事件
-const emit = defineEmits([
-  "import-songs",
-  "remove-song",
-  "play-song",
-  "toggle-favorite",
-  "go-back",
-]);
+const { playSong } = useAudioPlayer();
+const { importSongs, removeSong, toggleFavorite } = useMusicActions();
+const { canGoBack, goBack } = useNavigation();
 
 const fileInput = ref(null);
 
-// 打开电脑文件选择窗口
 function openFilePicker() {
   fileInput.value.click();
 }
 
-// 导入音乐文件
-function importSongs(event) {
+function onFileChange(event) {
   const files = Array.from(event.target.files || []).filter((file) =>
     file.type.startsWith("audio/"),
   );
-
-  emit("import-songs", files);
-
-  // 清空选择框，允许重复选择同一个文件
+  importSongs(files);
   event.target.value = "";
-}
-
-// 删除歌曲
-function removeSong(id) {
-  emit("remove-song", id);
-}
-
-// 收藏 / 取消收藏歌曲
-function toggleFavorite(songId) {
-  emit("toggle-favorite", songId);
 }
 </script>
 
@@ -66,11 +38,10 @@ function toggleFavorite(songId) {
           class="back-button"
           :disabled="!canGoBack"
           title="返回上一页"
-          @click="emit('go-back')"
+          @click="goBack"
         >
           <ArrowLeft :size="19" />
         </button>
-
         <div>
           <h2>我的音乐</h2>
           <p>管理你导入的本地音乐</p>
@@ -78,8 +49,7 @@ function toggleFavorite(songId) {
       </div>
 
       <button class="import-button" @click="openFilePicker">
-        <Upload :size="18" />
-        导入音乐
+        <Upload :size="18" /> 导入音乐
       </button>
 
       <input
@@ -88,7 +58,7 @@ function toggleFavorite(songId) {
         accept="audio/*"
         multiple
         hidden
-        @change="importSongs"
+        @change="onFileChange"
       />
     </div>
 
@@ -97,21 +67,19 @@ function toggleFavorite(songId) {
       <h3>音乐库还是空的</h3>
       <p>导入电脑中的音乐文件，开始建立你的音乐收藏</p>
       <button class="import-button" @click="openFilePicker">
-        <Upload :size="18" />
-        选择音乐文件
+        <Upload :size="18" /> 选择音乐文件
       </button>
     </div>
 
     <div v-else class="song-list">
       <div class="song-count">共 {{ songs.length }} 首歌曲</div>
-
       <SongItem
         v-for="(song, index) in songs"
         :key="song.id"
         :song="song"
         :index="index"
         :is-favorite="favoriteSongs.includes(song.id)"
-        @play="emit('play-song', $event)"
+        @play="playSong"
         @remove="removeSong"
         @toggle-favorite="toggleFavorite"
       />

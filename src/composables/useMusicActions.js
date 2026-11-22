@@ -1,18 +1,19 @@
+// src/composables/useMusicActions.js
+import { storeToRefs } from "pinia";
 import { createSong, releaseSong } from "@/services/musicService";
 import { parseMusicMetadata } from "@/services/metadataService";
-import { getMusicStorage } from "@/app/services";
+import { getMusicStorage, getAudioService } from "@/app/services";
 import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";
-import { storeToRefs } from "pinia";
 
-export function useMusicActions({ songs, currentSong, audioService } = {}) {
+export function useMusicActions() {
   const musicStore = useMusicStore();
   const playerStore = usePlayerStore();
   const musicStorage = getMusicStorage();
+  const audioService = getAudioService();
 
-  // 兼容外部仍传 songs/currentSong；未传则内部从 store 取
-  const songsRef = songs ?? storeToRefs(musicStore).songs;
-  const currentSongRef = currentSong ?? storeToRefs(playerStore).currentSong;
+  const { songs } = storeToRefs(musicStore);
+  const { currentSong } = storeToRefs(playerStore);
 
   async function importSongs(files) {
     const newSongs = await Promise.all(
@@ -55,11 +56,11 @@ export function useMusicActions({ songs, currentSong, audioService } = {}) {
   }
 
   async function removeSong(id) {
-    const song = songsRef.value.find((item) => item.id === id);
+    const song = songs.value.find((item) => item.id === id);
     if (!song) return;
 
-    if (currentSongRef.value?.id === id) {
-      audioService?.stop();
+    if (currentSong.value?.id === id) {
+      audioService.stop();
       playerStore.resetPlayer();
     }
 
@@ -70,13 +71,10 @@ export function useMusicActions({ songs, currentSong, audioService } = {}) {
       return;
     }
 
-    // 一次清理音乐库、收藏、最近播放
     musicStore.removeSong(id);
-
     await musicStorage.saveMusicData("favorites", [
       ...musicStore.favoriteSongs,
     ]);
-
     releaseSong(song);
   }
 

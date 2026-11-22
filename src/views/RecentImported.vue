@@ -1,32 +1,32 @@
 <script setup>
+import { computed } from "vue";
+import { storeToRefs } from "pinia";
 import { Library, Music2, Play, ArrowLeft } from "lucide-vue-next";
+import { useMusicStore } from "@/stores/music";
+import { useAudioPlayer } from "@/composables/useAudioPlayer";
+import { useNavigation } from "@/composables/useNavigation";
 
-// 接收 App.vue 传递的数据
-defineProps({
-  songs: {
-    type: Array,
-    default: () => [],
-  },
-  canGoBack: {
-    type: Boolean,
-    default: false,
-  },
-});
+const musicStore = useMusicStore();
+const { songs } = storeToRefs(musicStore);
 
-// 向 App.vue 发送操作事件
-const emit = defineEmits(["play-song", "go-back"]);
+const { playSong } = useAudioPlayer();
+const { canGoBack, goBack } = useNavigation();
+
+// 按导入时间倒序，对应原 App.vue 里 sortedImportedSongs
+const sortedSongs = computed(() =>
+  [...songs.value].sort((a, b) => (b.importedAt ?? 0) - (a.importedAt ?? 0)),
+);
 </script>
 
 <template>
   <main class="recent-imported">
-    <!-- 页面顶部 -->
     <header class="page-header">
       <div class="page-heading">
         <button
           class="back-button"
           :disabled="!canGoBack"
           title="返回上一页"
-          @click="emit('go-back')"
+          @click="goBack"
         >
           <ArrowLeft :size="19" />
         </button>
@@ -38,21 +38,18 @@ const emit = defineEmits(["play-song", "go-back"]);
       </div>
 
       <div class="page-actions">
-        <span class="song-count"> 共 {{ songs.length }} 首歌曲 </span>
+        <span class="song-count">共 {{ sortedSongs.length }} 首歌曲</span>
       </div>
     </header>
 
-    <!-- 歌曲列表 -->
-    <div v-if="songs.length > 0" class="song-list">
+    <div v-if="sortedSongs.length > 0" class="song-list">
       <button
-        v-for="(song, index) in songs"
+        v-for="(song, index) in sortedSongs"
         :key="song.id"
         class="song-item"
-        @click="emit('play-song', song)"
+        @click="playSong(song)"
       >
-        <span class="song-index">
-          {{ index + 1 }}
-        </span>
+        <span class="song-index">{{ index + 1 }}</span>
 
         <div class="song-cover">
           <img
@@ -78,7 +75,6 @@ const emit = defineEmits(["play-song", "go-back"]);
       </button>
     </div>
 
-    <!-- 空状态 -->
     <div v-else class="empty-state">
       <Library :size="48" />
       <h3>音乐库还是空的</h3>
