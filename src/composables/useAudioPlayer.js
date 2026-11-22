@@ -11,6 +11,7 @@ import { usePlayerStore } from "@/stores/player";
 import { getAudioService, getMusicStorage } from "@/app/services";
 import { STORAGE_KEYS } from "@/storage/keys";
 import { getSongAudioUrl } from "@/services/assetUrls";
+import { useListeningStats } from "@/composables/useListeningStats";
 
 // 模块级单例
 let instance = null;
@@ -72,6 +73,8 @@ function createInstance() {
     playerStore.setQueue(context, startIndex);
 
     musicStore.addRecentSong(song);
+    // 听歌统计：记录一次播放
+    useListeningStats().recordPlay(song);
     musicStorage
       .saveMusicData(
         STORAGE_KEYS.recentSongs,

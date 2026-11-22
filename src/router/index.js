@@ -14,6 +14,7 @@ import RecentImported from "@/views/RecentImported.vue";
 import Playlists from "@/views/Playlists.vue";
 import Search from "@/views/Search.vue";
 import Settings from "@/views/Settings.vue";
+import Stats from "@/views/Stats.vue";
 
 export const routes = [
   { path: "/", name: "home", component: Home },
@@ -28,6 +29,7 @@ export const routes = [
   // 歌单详情用可选参数：/playlists 是列表，/playlists/xxx 是详情
   { path: "/playlists/:id?", name: "playlists", component: Playlists },
   { path: "/search", name: "search", component: Search },
+  { path: "/stats", name: "stats", component: Stats },
   { path: "/settings", name: "settings", component: Settings },
   // 未知路径回首页
   { path: "/:pathMatch(.*)*", redirect: { name: "home" } },

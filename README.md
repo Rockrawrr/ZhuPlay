@@ -95,6 +95,7 @@ zhuplay
       ├─ Favorites.vue
       ├─ Playlists.vue
       ├─ Search.vue
+      ├─ Stats.vue             # 听歌统计（次数 / 时长 / 最近 7 天 / 榜单）
       ├─ Settings.vue
       ├─ RecentPlayed.vue
       └─ RecentImported.vue

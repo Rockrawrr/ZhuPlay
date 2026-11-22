@@ -2,6 +2,7 @@
 // 侧边栏导航：只负责切页与“创建歌单”入口
 // 注意：「搜索」入口目前是占位，等功能实现后再接上
 import {
+  BarChart3,
   Home,
   Search,
   Library,
@@ -88,6 +89,14 @@ async function handleCreatePlaylist() {
         @click.prevent="navigateTo('search')"
       >
         <Search :size="21" /><span>搜索</span>
+      </a>
+      <a
+        class="nav-item"
+        :class="{ active: currentPage === 'stats' }"
+        href="#"
+        @click.prevent="navigateTo('stats')"
+      >
+        <BarChart3 :size="21" /><span>听歌统计</span>
       </a>
     </nav>
 

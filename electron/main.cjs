@@ -137,6 +137,36 @@ function showMainWindow() {
 
 // ===== 托盘 =====
 
+// 托盘菜单：全部用普通项（不用 checkbox），避免勾选栏让文字看起来没对齐。
+// Windows 原生菜单文字是左对齐的，样式不可自定义，只能保证各项一致。
+function buildTrayMenu() {
+  const autoStart = app.getLoginItemSettings().openAtLogin;
+
+  return Menu.buildFromTemplate([
+    { label: "打开 ZhuPlay", click: showMainWindow },
+    { label: "隐藏到托盘", click: () => mainWindow?.hide() },
+    { type: "separator" },
+    {
+      label: `开机自启：${autoStart ? "已开启" : "已关闭"}`,
+      click: () => {
+        app.setLoginItemSettings({
+          openAtLogin: !autoStart,
+          path: process.execPath,
+        });
+        tray.setContextMenu(buildTrayMenu());
+      },
+    },
+    { type: "separator" },
+    {
+      label: "退出 ZhuPlay",
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+}
+
 function createTray() {
   const image = nativeImage.createFromPath(resolveIconPath());
 
@@ -146,39 +176,7 @@ function createTray() {
 
   tray = new Tray(image.resize({ width: 16, height: 16 }));
   tray.setToolTip("ZhuPlay");
-
-  const showWindow = () => {
-    if (!mainWindow) return createWindow();
-    mainWindow.show();
-    mainWindow.focus();
-  };
-
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: "显示 ZhuPlay", click: showMainWindow },
-      { label: "隐藏到托盘", click: () => mainWindow?.hide() },
-      { type: "separator" },
-      {
-        label: "开机自启",
-        type: "checkbox",
-        checked: app.getLoginItemSettings().openAtLogin,
-        click: (item) => {
-          app.setLoginItemSettings({
-            openAtLogin: item.checked,
-            path: process.execPath,
-          });
-        },
-      },
-      { type: "separator" },
-      {
-        label: "退出",
-        click: () => {
-          isQuitting = true;
-          app.quit();
-        },
-      },
-    ]),
-  );
+  tray.setContextMenu(buildTrayMenu());
 
   // 左键点托盘图标：在显示/隐藏之间切换
   tray.on("click", () => {

@@ -13,4 +13,6 @@ export const STORAGE_KEYS = {
   queue: "playQueue",
   // 音量与静音 { value, muted }
   volume: "volume",
+  // 听歌统计 { plays, daily, totalPlays, totalSeconds }
+  stats: "listeningStats",
 };

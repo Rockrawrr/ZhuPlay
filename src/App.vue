@@ -11,12 +11,15 @@ import SongInfoDialog from '@/components/overlays/SongInfoDialog.vue'
 import AddToPlaylistDialog from '@/components/overlays/AddToPlaylistDialog.vue'
 import { usePlaylistPicker } from '@/composables/useOverlays'
 import { useMediaSession } from '@/composables/useMediaSession'
+import { useListeningStats } from '@/composables/useListeningStats'
 
 const { state: pickerState, closePlaylistPicker } = usePlaylistPicker()
 
 useAppBootstrap()
 // 系统媒体控制（媒体键 / Windows 媒体弹窗），Web 与桌面端都生效
 useMediaSession()
+// 听歌统计：加载历史并跟随播放进度累计
+useListeningStats().initStats()
 </script>
 
 <template>
