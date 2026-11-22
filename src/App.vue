@@ -10,10 +10,13 @@ import ContextMenu from '@/components/overlays/ContextMenu.vue'
 import SongInfoDialog from '@/components/overlays/SongInfoDialog.vue'
 import AddToPlaylistDialog from '@/components/overlays/AddToPlaylistDialog.vue'
 import { usePlaylistPicker } from '@/composables/useOverlays'
+import { useMediaSession } from '@/composables/useMediaSession'
 
 const { state: pickerState, closePlaylistPicker } = usePlaylistPicker()
 
 useAppBootstrap()
+// 系统媒体控制（媒体键 / Windows 媒体弹窗），Web 与桌面端都生效
+useMediaSession()
 </script>
 
 <template>

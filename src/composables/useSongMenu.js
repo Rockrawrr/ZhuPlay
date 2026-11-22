@@ -6,6 +6,7 @@
  */
 import {
   Copy,
+  FolderOpen,
   Heart,
   Info,
   ListPlus,
@@ -115,6 +116,16 @@ export function useSongMenu() {
         action: () => copyTitle(song),
       },
     ];
+
+    // 桌面端：能拿到真实文件路径时才显示
+    if (window.zhuplayDesktop?.isDesktop && song.filePath) {
+      items.push({
+        id: "reveal-in-folder",
+        label: "在文件夹中显示",
+        icon: FolderOpen,
+        action: () => window.zhuplayDesktop.showItemInFolder(song.filePath),
+      });
+    }
 
     if (context.source === "playlist") {
       items.push(

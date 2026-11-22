@@ -8,7 +8,17 @@
  * 2. 开发环境直接连 Vite dev server，保留热更新
  * 3. 渲染进程保持 contextIsolation + 无 node 集成，只通过 preload 暴露少量 API
  */
-const { app, BrowserWindow, Menu, net, protocol, shell } = require("electron");
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  net,
+  protocol,
+  screen,
+  shell,
+} = require("electron");
+const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
@@ -98,16 +108,63 @@ function registerAppProtocol() {
 
 let mainWindow = null;
 
+// ===== 窗口位置与大小记忆 =====
+
+const DEFAULT_BOUNDS = { width: 1280, height: 840 };
+
+function windowStateFile() {
+  return path.join(app.getPath("userData"), "window-state.json");
+}
+
+function loadWindowState() {
+  try {
+    const state = JSON.parse(fs.readFileSync(windowStateFile(), "utf8"));
+    if (!Number.isFinite(state.width) || !Number.isFinite(state.height)) {
+      return { ...DEFAULT_BOUNDS };
+    }
+
+    // 位置可能来自已拔掉的显示器，落不到任何屏幕内就只保留尺寸
+    if (Number.isFinite(state.x) && Number.isFinite(state.y)) {
+      const area = screen.getDisplayMatching(state).workArea;
+      const visible =
+        state.x + 120 > area.x &&
+        state.x < area.x + area.width - 120 &&
+        state.y + 60 > area.y &&
+        state.y < area.y + area.height - 60;
+
+      if (visible) return state;
+    }
+
+    return { width: state.width, height: state.height };
+  } catch {
+    return { ...DEFAULT_BOUNDS };
+  }
+}
+
+function saveWindowState(win) {
+  if (!win || win.isDestroyed() || win.isMaximized() || win.isMinimized()) {
+    return;
+  }
+
+  try {
+    fs.writeFileSync(windowStateFile(), JSON.stringify(win.getBounds()));
+  } catch (error) {
+    console.error("窗口状态保存失败：", error);
+  }
+}
+
 function createWindow() {
+  const bounds = loadWindowState();
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 840,
+    ...bounds,
     minWidth: 940,
     minHeight: 600,
     backgroundColor: "#121212",
     show: false,
     autoHideMenuBar: true,
     title: "ZhuPlay",
+    icon: path.join(__dirname, "..", "build", "icon.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -118,6 +175,20 @@ function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => mainWindow.show());
+
+  // 移动/缩放时防抖保存
+  let saveTimer = null;
+  const scheduleSave = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveWindowState(mainWindow), 400);
+  };
+
+  mainWindow.on("resize", scheduleSave);
+  mainWindow.on("move", scheduleSave);
+  mainWindow.on("close", () => {
+    clearTimeout(saveTimer);
+    saveWindowState(mainWindow);
+  });
 
   // 不在应用内打开新窗口（外链交给系统浏览器）
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -158,6 +229,14 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     registerAppProtocol();
+
+    // 渲染进程请求「在文件夹中显示」
+    ipcMain.handle("shell:show-item-in-folder", (_event, filePath) => {
+      if (typeof filePath !== "string" || filePath.length === 0) return false;
+      shell.showItemInFolder(filePath);
+      return true;
+    });
+
     // 桌面端不需要默认菜单（保留快捷键用 autoHideMenuBar）
     Menu.setApplicationMenu(null);
     createWindow();

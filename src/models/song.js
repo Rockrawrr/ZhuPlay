@@ -45,6 +45,9 @@ export function createSongModel(file, metadata = {}) {
     updatedAt: Date.now(),
 
     // 本地资源（只存 File / Blob，播放与封面地址按需生成）
-    file
+    file,
+
+    // 桌面端才有：原始文件在磁盘上的绝对路径（用于「在文件夹中显示」）
+    filePath: metadata.filePath ?? ""
   }
 }

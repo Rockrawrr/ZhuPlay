@@ -29,16 +29,33 @@ export function useMusicActions() {
   const { songs } = storeToRefs(musicStore);
   const { currentSong } = storeToRefs(playerStore);
 
+  // 桌面端：取文件在磁盘上的真实路径（Web 端拿不到，返回空串）
+  function resolveFilePath(file) {
+    const desktop = window.zhuplayDesktop;
+    if (!desktop?.isDesktop) return "";
+
+    try {
+      return desktop.getPathForFile(file) || "";
+    } catch {
+      return "";
+    }
+  }
+
   async function importSongs(files) {
     const newSongs = await Promise.all(
       Array.from(files).map(async (file) => {
+        let song;
+
         try {
           const metadata = await parseMusicMetadata(file);
-          return createSong(file, metadata);
+          song = createSong(file, metadata);
         } catch (error) {
           console.error(`音乐解析失败：${file.name}`, error);
-          return createSong(file);
+          song = createSong(file);
         }
+
+        song.filePath = resolveFilePath(file);
+        return song;
       }),
     );
 

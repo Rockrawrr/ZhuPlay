@@ -129,11 +129,20 @@ npm run electron:pack
 npm run electron:build
 ```
 
-Electron 相关的三处设计：
+Electron 相关的设计：
 
 - **自定义协议 `app://`**：生产环境不用 `file://`。`file://` 属于不透明来源，IndexedDB 行为不可靠，而歌曲、歌单、封面全部存在 IndexedDB 里
 - **主进程用 `.cjs`**：项目 `package.json` 是 `"type": "module"`，主进程保持 CommonJS 才能用 `require`
-- **preload 只暴露只读信息**：`window.zhuplayDesktop` 目前只有 `isDesktop` / `platform` / `versions`，后续「在文件夹中显示」等能力在这里加 IPC 包装
+- **preload 只暴露必要能力**：`window.zhuplayDesktop` 提供 `isDesktop` / `platform` / `versions` / `getPathForFile` / `showItemInFolder`
+
+桌面端专属能力：
+
+| 能力 | 说明 |
+| --- | --- |
+| 窗口记忆 | 关闭时把位置与大小写入 `%APPDATA%/ZhuPlay/window-state.json`，下次启动还原；显示器拔掉导致越界时只保留尺寸 |
+| 系统媒体控制 | 通过 `navigator.mediaSession` 接入媒体键 / Windows 媒体弹窗，显示封面与歌名，支持播放、暂停、上/下一首 |
+| 在文件夹中显示 | 右键菜单项，仅桌面端且歌曲有真实路径时出现（Web 端 `<input type=file>` 拿不到路径；桌面端在导入时用 `webUtils.getPathForFile` 记录） |
+| 应用图标 | `build/icon.ico`（16~256 多尺寸），由 `make_icon.py` 生成 |
 
 首次安装依赖如果 Electron 二进制下载失败，可指定镜像：
 
