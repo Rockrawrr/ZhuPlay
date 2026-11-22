@@ -5,7 +5,7 @@
  * 边界：负责“改 store + 落库”，页面只调用这些动作，不直接写 IndexedDB
  */
 import { storeToRefs } from "pinia";
-import { createSong, releaseSong } from "@/services/musicService";
+import { createSong } from "@/services/musicService";
 import { parseMusicMetadata } from "@/services/metadataService";
 import { getMusicStorage, getAudioService, getPlaylistStorage } from "@/app/services";
 import { useMusicStore } from "@/stores/music";
@@ -14,6 +14,7 @@ import { usePlaylistStore } from "@/stores/playlist";
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
 import { STORAGE_KEYS } from "@/storage/keys";
+import { releaseSongAudioUrl } from "@/services/assetUrls";
 
 export function useMusicActions() {
   const musicStore = useMusicStore();
@@ -145,7 +146,7 @@ export function useMusicActions() {
       }
     }
 
-    releaseSong(song);
+    releaseSongAudioUrl(id);
     toast.success("已删除歌曲");
   }
 

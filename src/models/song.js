@@ -1,7 +1,7 @@
 /**
  * 歌曲数据模型
- * 说明：file 是用户选中的原始文件（存进 IndexedDB），url / coverUrl 是运行期生成的
- * blob 地址，不参与持久化（见 storage/musicStorage.js）
+ * 说明：file 是用户选中的原始文件（存进 IndexedDB），cover 是封面 Blob；
+ * 播放地址由 services/assetUrls 按需创建，封面地址由 SongCover 组件按需创建
  */
 
 // 创建标准歌曲数据模型
@@ -30,7 +30,6 @@ export function createSongModel(file, metadata = {}) {
     duration: metadata.duration ?? 0,
     lyrics: metadata.lyrics || '',
     cover: metadata.cover ?? null,
-    coverUrl: '',
 
     // 音频技术信息
     format,
@@ -45,8 +44,7 @@ export function createSongModel(file, metadata = {}) {
     importedAt: Date.now(),
     updatedAt: Date.now(),
 
-    // 本地资源
-    file,
-    url: ''
+    // 本地资源（只存 File / Blob，播放与封面地址按需生成）
+    file
   }
 }

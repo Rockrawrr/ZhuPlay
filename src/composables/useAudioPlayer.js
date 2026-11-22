@@ -10,6 +10,7 @@ import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";
 import { getAudioService, getMusicStorage } from "@/app/services";
 import { STORAGE_KEYS } from "@/storage/keys";
+import { getSongAudioUrl } from "@/services/assetUrls";
 
 // 模块级单例
 let instance = null;
@@ -79,7 +80,8 @@ function createInstance() {
       .catch((error) => console.error("最近播放记录保存失败：", error));
 
     playerStore.setCurrentSong(song);
-    audioService.setSource(song.url);
+    // 播放地址按需创建（缓存最近 3 首，超出自动回收）
+    audioService.setSource(getSongAudioUrl(song));
 
     audioService
       .play()

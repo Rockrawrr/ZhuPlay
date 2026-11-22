@@ -7,6 +7,7 @@ import { ListMusic, Music2, Play, X } from "lucide-vue-next";
 import { usePlayerStore } from "@/stores/player";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useConfirm } from "@/composables/useConfirm";
+import SongCover from "@/components/common/SongCover.vue";
 
 const emit = defineEmits(["close"]);
 
@@ -80,12 +81,9 @@ onUnmounted(() => window.removeEventListener("keydown", handleKeydown));
             </span>
 
             <span class="queue-cover">
-              <img
-                v-if="song.coverUrl"
-                :src="song.coverUrl"
-                :alt="song.album || song.name"
-              />
-              <Music2 v-else :size="16" />
+              <SongCover :blob="song.cover" :alt="song.album || song.name">
+                <Music2 :size="16" />
+              </SongCover>
             </span>
 
             <span class="queue-info">

@@ -8,7 +8,7 @@ import { onMounted, onUnmounted } from "vue";
 import { useMusicStore } from "@/stores/music";
 import { usePlaylistStore } from "@/stores/playlist";
 import { getMusicStorage, getPlaylistStorage } from "@/app/services";
-import { releaseSong } from "@/services/musicService";
+import { releaseAllAudioUrls } from "@/services/assetUrls";
 import { destroyAudioPlayer } from "@/composables/useAudioPlayer";
 import { useQueuePersistence } from "@/app/useQueuePersistence";
 import { useVolume } from "@/composables/useVolume";
@@ -59,7 +59,8 @@ export function useAppBootstrap() {
   });
 
   onUnmounted(() => {
-    musicStore.songs.forEach(releaseSong);
+    // 播放地址是复用的缓存，统一在这里释放；封面地址由各组件自己回收
+    releaseAllAudioUrls();
     destroyAudioPlayer();
   });
 }

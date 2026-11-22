@@ -9,6 +9,7 @@ import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";
 import { getMusicStorage, getAudioService } from "@/app/services";
 import { STORAGE_KEYS } from "@/storage/keys";
+import { getSongAudioUrl } from "@/services/assetUrls";
 
 const QUEUE_KEY = STORAGE_KEYS.queue;
 
@@ -72,7 +73,7 @@ export function useQueuePersistence() {
       // 只把歌曲准备好（不自动播放，浏览器会拦截无用户手势的播放）
       const song = queue[index];
       playerStore.setCurrentSong(song);
-      if (song.url) audioService.setSource(song.url);
+      if (song.file) audioService.setSource(getSongAudioUrl(song));
 
       // 恢复本身不应再触发一次保存
       lastSaved = signatureOf({ songIds: queue.map((item) => item.id), index });

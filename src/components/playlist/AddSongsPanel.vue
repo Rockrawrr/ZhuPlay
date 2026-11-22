@@ -4,6 +4,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { Music2, Plus, Search, X } from "lucide-vue-next";
 import { useConfirm } from "@/composables/useConfirm";
+import SongCover from "@/components/common/SongCover.vue";
 
 const props = defineProps({
   playlistName: {
@@ -83,12 +84,9 @@ onUnmounted(() => window.removeEventListener("keydown", handleKeydown));
         <li v-for="song in addableSongs" :key="song.id">
           <button class="add-row" @click="emit('add', song.id)">
             <span class="add-cover">
-              <img
-                v-if="song.coverUrl"
-                :src="song.coverUrl"
-                :alt="song.album || song.name"
-              />
-              <Music2 v-else :size="15" />
+              <SongCover :blob="song.cover" :alt="song.album || song.name">
+                <Music2 :size="15" />
+              </SongCover>
             </span>
 
             <span class="add-info">

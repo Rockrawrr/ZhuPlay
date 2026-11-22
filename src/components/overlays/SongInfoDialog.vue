@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted } from "vue";
 import { Info, X } from "lucide-vue-next";
 import { useSongInfo } from "@/composables/useOverlays";
 import { formatTime, formatDateTime } from "@/utils/format";
+import SongCover from "@/components/common/SongCover.vue";
 
 const { state, closeSongInfo } = useSongInfo();
 
@@ -63,12 +64,12 @@ onUnmounted(() => window.removeEventListener("keydown", handleKeydown, true));
         <div class="info-panel" role="dialog" aria-modal="true">
           <header class="info-header">
             <div class="info-cover">
-              <img
-                v-if="state.song.coverUrl"
-                :src="state.song.coverUrl"
+              <SongCover
+                :blob="state.song.cover"
                 :alt="state.song.album || state.song.name"
-              />
-              <Info v-else :size="18" />
+              >
+                <Info :size="18" />
+              </SongCover>
             </div>
 
             <div class="info-heading">

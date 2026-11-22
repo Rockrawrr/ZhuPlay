@@ -1,6 +1,7 @@
 <script setup>
 // 当前歌曲信息（纯展示）：封面、歌名（过长时跑马灯）、歌手、喜欢按钮
 import { Music2, Heart } from "lucide-vue-next";
+import SongCover from "@/components/common/SongCover.vue";
 
 // 歌名超过这个长度时启用跑马灯
 const MARQUEE_THRESHOLD = 12;
@@ -23,12 +24,9 @@ const emit = defineEmits(["toggle-favorite"]);
 <template>
   <div class="track-info">
     <div class="track-cover">
-      <img
-        v-if="song?.coverUrl"
-        :src="song.coverUrl"
-        :alt="song.album || song.name"
-      />
-      <Music2 v-else :size="24" />
+      <SongCover :blob="song?.cover" :alt="song?.album || song?.name || ''">
+        <Music2 :size="24" />
+      </SongCover>
     </div>
 
     <div class="track-text">

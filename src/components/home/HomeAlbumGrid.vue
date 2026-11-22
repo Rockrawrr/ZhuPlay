@@ -3,6 +3,7 @@
 // 封面 + 歌名 + 来源（喜欢/本地）+ 悬浮播放按钮，右键同样接入歌曲菜单
 import { Music2, Play } from "lucide-vue-next";
 import EmptyState from "@/components/common/EmptyState.vue";
+import SongCover from "@/components/common/SongCover.vue";
 import { useSongMenu } from "@/composables/useSongMenu";
 
 const props = defineProps({
@@ -40,13 +41,9 @@ function handleMenu(event, song) {
       @contextmenu.prevent="handleMenu($event, song)"
     >
       <div class="album-cover">
-        <img
-          v-if="song.coverUrl"
-          :src="song.coverUrl"
-          :alt="song.album || song.name"
-          loading="lazy"
-        />
-        <Music2 v-else :size="48" />
+        <SongCover :blob="song.cover" :alt="song.album || song.name">
+          <Music2 :size="48" />
+        </SongCover>
 
         <button
           class="featured-play"

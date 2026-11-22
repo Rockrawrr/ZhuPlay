@@ -4,6 +4,7 @@
 // 差异通过 props 控制：meta 显示什么、显示哪些按钮、移除按钮用什么图标
 import { Heart, ListPlus, Music2, Trash2, X } from "lucide-vue-next";
 import { formatTime } from "@/utils/format";
+import SongCover from "@/components/common/SongCover.vue";
 
 defineProps({
   song: {
@@ -65,13 +66,9 @@ const emit = defineEmits([
       @click="emit('play')"
     >
       <span class="song-cover">
-        <img
-          v-if="song.coverUrl"
-          :src="song.coverUrl"
-          :alt="song.album || song.name"
-          loading="lazy"
-        />
-        <Music2 v-else :size="16" />
+        <SongCover :blob="song.cover" :alt="song.album || song.name">
+          <Music2 :size="16" />
+        </SongCover>
       </span>
 
       <span class="song-text">

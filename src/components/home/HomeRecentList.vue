@@ -5,6 +5,7 @@
 import { computed } from "vue";
 import { Music2, Play } from "lucide-vue-next";
 import EmptyState from "@/components/common/EmptyState.vue";
+import SongCover from "@/components/common/SongCover.vue";
 import { useSongMenu } from "@/composables/useSongMenu";
 
 const props = defineProps({
@@ -100,13 +101,9 @@ function handleMenu(event, song) {
         <span class="recent-index">{{ index + 1 }}</span>
 
         <div class="recent-icon">
-          <img
-            v-if="song.coverUrl"
-            :src="song.coverUrl"
-            :alt="song.album || song.name"
-            loading="lazy"
-          />
-          <Music2 v-else :size="20" />
+          <SongCover :blob="song.cover" :alt="song.album || song.name">
+            <Music2 :size="20" />
+          </SongCover>
         </div>
 
         <div class="recent-info">
