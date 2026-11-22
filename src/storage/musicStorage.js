@@ -35,6 +35,11 @@ async function saveSong(song) {
     await adapter.remove('songs', songId)
   }
 
+  // 批量删除歌曲（同一个事务，批量操作用）
+  async function deleteSongs(songIds) {
+    await adapter.removeMany('songs', songIds)
+  }
+
   // 保存音乐相关数据
   async function saveMusicData(key, value) {
     await adapter.put('musicData', {
@@ -50,11 +55,6 @@ async function saveSong(song) {
     return result ? result.value : defaultValue
   }
 
-  // 删除音乐相关数据
-  async function deleteMusicData(key) {
-    await adapter.remove('musicData', key)
-  }
-
   // 清空歌曲与零散音乐数据（设置页“清空全部数据”使用）
   async function clearAll() {
     await adapter.clear('songs')
@@ -65,9 +65,9 @@ async function saveSong(song) {
     saveSong,
     getSongs,
     deleteSong,
+    deleteSongs,
     saveMusicData,
     getMusicData,
-    deleteMusicData,
     clearAll
   }
 }

@@ -119,6 +119,8 @@ npm install
 npm run dev     # 开发
 npm run build   # 构建
 npm run preview # 预览构建产物
+npm run lint    # ESLint 静态检查
+npm test        # Vitest 单元测试
 ```
 
 ## 桌面端（Electron）

@@ -85,7 +85,7 @@ function playSelected() {
 // 批量收藏：只补收藏，不会取消已有的
 function favoriteSelected() {
   const targets = selectedSongs.value.filter(
-    (song) => !favoriteSongs.value.includes(song.id),
+    (song) => !favoriteIds.value.has(song.id),
   );
 
   if (targets.length === 0) {
@@ -128,6 +128,9 @@ const AUDIO_EXTENSIONS = /\.(mp3|flac|wav|ogg|oga|m4a|aac|opus|wma|ape|aiff|alac
 const totalSize = computed(() =>
   songs.value.reduce((sum, song) => sum + (song.fileSize || 0), 0),
 );
+
+// 收藏判断用 Set：1 万收藏时逐行 includes 会变成 O(n²)
+const favoriteIds = computed(() => new Set(favoriteSongs.value));
 
 function handleAddToPlaylist(song) {
   openPlaylistPicker(song);
@@ -327,7 +330,7 @@ function onDrop(event) {
           <SongRow
             :song="song"
             :index="index"
-            :is-favorite="favoriteSongs.includes(song.id)"
+            :is-favorite="favoriteIds.has(song.id)"
             :selectable="selectMode"
             :selected="selectedIds.has(song.id)"
             meta="size"

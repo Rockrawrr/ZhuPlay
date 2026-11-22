@@ -2,7 +2,7 @@
 // 通用歌曲行：序号 + 封面 + 歌名/歌手 + 元信息（时长或文件大小）+ 可选操作按钮
 // 音乐库、收藏、最近播放、最近导入、搜索、歌单详情全部复用这一个组件，
 // 差异通过 props 控制：meta 显示什么、显示哪些按钮、移除按钮用什么图标
-import { Check, Heart, ListPlus, Music2, Trash2, X } from "lucide-vue-next";
+import { Check, Heart, ListPlus, Music2, X } from "lucide-vue-next";
 import { formatTime } from "@/utils/format";
 import SongCover from "@/components/common/SongCover.vue";
 
@@ -64,11 +64,30 @@ const emit = defineEmits([
   "add-to-playlist",
   "toggle-select",
 ]);
+
+// 列表内方向键移动焦点，方便键盘操作
+function focusSibling(event, delta) {
+  const buttons = [...document.querySelectorAll(".song-main")];
+  const index = buttons.indexOf(event.currentTarget);
+  const target = buttons[index + delta];
+
+  if (!target) return;
+  target.focus();
+  target.scrollIntoView({ block: "nearest" });
+}
 </script>
 
 <template>
   <div class="song-row" :class="{ selected, selectable }">
-    <span v-if="selectable" class="song-check" :class="{ checked: selected }">
+    <span
+      v-if="selectable"
+      class="song-check"
+      :class="{ checked: selected }"
+      role="checkbox"
+      :aria-checked="selected"
+      :aria-label="`选择 ${song.name}`"
+      aria-hidden="true"
+    >
       <Check v-if="selected" :size="13" />
     </span>
     <span v-else class="song-index">{{ index + 1 }}</span>
@@ -76,7 +95,10 @@ const emit = defineEmits([
     <button
       class="song-main"
       :title="selectable ? (selected ? '取消选择' : '选择这首歌') : `播放 ${song.name}`"
+      :aria-pressed="selectable ? selected : undefined"
       @click="selectable ? emit('toggle-select') : emit('play')"
+      @keydown.down.prevent="focusSibling($event, 1)"
+      @keydown.up.prevent="focusSibling($event, -1)"
     >
       <span class="song-cover">
         <SongCover :blob="song.cover" :alt="song.album || song.name">
@@ -102,6 +124,8 @@ const emit = defineEmits([
       class="icon-button"
       :class="{ active: isFavorite }"
       :title="isFavorite ? '取消喜欢' : '添加喜欢'"
+      :aria-label="isFavorite ? '取消喜欢' : '添加喜欢'"
+      :aria-pressed="isFavorite"
       @click="emit('toggle-favorite')"
     >
       <Heart :size="18" :fill="isFavorite ? '#1ed760' : 'none'" />
@@ -111,6 +135,7 @@ const emit = defineEmits([
       v-if="showAddToPlaylist"
       class="icon-button"
       title="添加到歌单"
+      aria-label="添加到歌单"
       @click="emit('add-to-playlist')"
     >
       <ListPlus :size="18" />
@@ -120,6 +145,7 @@ const emit = defineEmits([
       v-if="removable"
       class="icon-button danger"
       :title="removeLabel"
+      :aria-label="removeLabel"
       @click="emit('remove')"
     >
       <component :is="removeIcon || X" :size="17" />

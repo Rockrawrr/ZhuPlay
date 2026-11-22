@@ -236,7 +236,7 @@ export async function exportBackup() {
 
 // 导入：读取备份文本并合并
 export async function importBackup() {
-  let text = null;
+  let text;
 
   if (window.zhuplayDesktop?.isDesktop) {
     text = await window.zhuplayDesktop.openBackup();

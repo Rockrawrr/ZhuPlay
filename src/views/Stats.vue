@@ -7,7 +7,7 @@ import { useMusicStore } from "@/stores/music";
 import { useListeningStats } from "@/composables/useListeningStats";
 import { useConfirm } from "@/composables/useConfirm";
 import { useToast } from "@/composables/useToast";
-import { formatTime } from "@/utils/format";
+import { formatDuration, formatTime } from "@/utils/format";
 import PageHeader from "@/components/common/PageHeader.vue";
 import EmptyState from "@/components/common/EmptyState.vue";
 
@@ -23,18 +23,6 @@ const songById = computed(() => {
   for (const song of songs.value) map.set(song.id, song);
   return map;
 });
-
-// 总时长按小时展示更直观
-function formatDuration(seconds) {
-  const total = Math.max(0, Math.round(seconds || 0));
-  if (total < 60) return `${total} 秒`;
-
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-
-  if (hours > 0) return `${hours} 小时 ${minutes} 分`;
-  return `${minutes} 分 ${total % 60} 秒`;
-}
 
 const totalPlays = computed(() => state.value.totalPlays || 0);
 const totalDuration = computed(() => formatDuration(state.value.totalSeconds));

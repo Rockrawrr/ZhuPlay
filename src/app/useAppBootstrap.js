@@ -12,6 +12,7 @@ import { releaseAllAudioUrls } from "@/services/assetUrls";
 import { destroyAudioPlayer } from "@/composables/useAudioPlayer";
 import { useQueuePersistence } from "@/app/useQueuePersistence";
 import { useVolume } from "@/composables/useVolume";
+import { useToast } from "@/composables/useToast";
 import { STORAGE_KEYS } from "@/storage/keys";
 
 export function useAppBootstrap() {
@@ -19,6 +20,7 @@ export function useAppBootstrap() {
   const playlistStore = usePlaylistStore();
   const musicStorage = getMusicStorage();
   const playlistStorage = getPlaylistStorage();
+  const toast = useToast();
   const { restoreQueue } = useQueuePersistence();
   const { restoreVolume } = useVolume();
 
@@ -26,27 +28,30 @@ export function useAppBootstrap() {
     try {
       const savedSongs = await musicStorage.getSongs();
       musicStore.setSongs(savedSongs);
-      console.log(`成功恢复 ${savedSongs.length} 首歌曲`);
 
       const savedFavorites = await musicStorage.getMusicData(
         STORAGE_KEYS.favorites,
         [],
       );
       musicStore.setFavorites(savedFavorites);
-      console.log(`成功恢复 ${musicStore.favoriteSongs.length} 首收藏`);
 
       const savedRecentIds = await musicStorage.getMusicData(
         STORAGE_KEYS.recentSongs,
         [],
       );
       musicStore.setRecentSongs(savedRecentIds);
-      console.log(`成功恢复 ${musicStore.recentSongs.length} 首最近播放`);
 
       const savedPlaylists = await playlistStorage.getPlaylists();
       playlistStore.setPlaylists(savedPlaylists);
-      console.log(`成功恢复 ${savedPlaylists.length} 个歌单`);
+
+      if (import.meta.env.DEV) {
+        console.debug(
+          `[bootstrap] 歌曲 ${savedSongs.length} / 收藏 ${musicStore.favoriteSongs.length} / 最近 ${musicStore.recentSongs.length} / 歌单 ${savedPlaylists.length}`,
+        );
+      }
     } catch (error) {
       console.error("音乐数据恢复失败：", error);
+      toast.error("本地数据读取失败，部分内容可能缺失");
     }
   }
 

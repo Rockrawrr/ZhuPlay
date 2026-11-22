@@ -24,6 +24,8 @@ export function useQueuePersistence() {
 
   // 上一次写入的快照签名，避免相同内容重复落库
   let lastSaved = "";
+  // 队列变化可能连续触发（批量移除、清空），写入做 300ms 防抖
+  let saveTimer = null;
 
   function buildSnapshot() {
     return {
@@ -48,6 +50,14 @@ export function useQueuePersistence() {
     } catch (error) {
       console.error("播放队列保存失败：", error);
     }
+  }
+
+  function schedulePersist() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      persistQueue();
+    }, 300);
   }
 
   async function restoreQueue() {
@@ -83,7 +93,7 @@ export function useQueuePersistence() {
   }
 
   // 队列或当前下标变化时落库（setQueue / removeFromQueue / resetPlayer 都会替换数组）
-  watch([() => playerStore.queue, () => playerStore.currentIndex], persistQueue);
+  watch([() => playerStore.queue, () => playerStore.currentIndex], schedulePersist);
 
   return { restoreQueue };
 }

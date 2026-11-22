@@ -22,6 +22,9 @@ const EMPTY = () => ({
 const state = ref(EMPTY());
 
 let loaded = false;
+let loadPromise = null;
+// 加载完成前发生的操作先排队，读取完成后再按顺序重放（避免被 load 覆盖）
+const pendingOps = [];
 let dirty = false;
 let flushTimer = null;
 
@@ -37,22 +40,43 @@ export function useListeningStats() {
   const playerStore = usePlayerStore();
 
   async function load() {
-    if (loaded) return;
-    loaded = true;
+    if (loadPromise) return loadPromise;
 
-    try {
-      const saved = await musicStorage.getMusicData(STORAGE_KEYS.stats, null);
-      if (saved && typeof saved === "object") {
-        state.value = {
-          ...EMPTY(),
-          ...saved,
-          plays: saved.plays ?? {},
-          daily: saved.daily ?? {},
-        };
+    loadPromise = (async () => {
+      try {
+        const saved = await musicStorage.getMusicData(STORAGE_KEYS.stats, null);
+        if (saved && typeof saved === "object") {
+          state.value = {
+            ...EMPTY(),
+            ...saved,
+            plays: saved.plays ?? {},
+            daily: saved.daily ?? {},
+          };
+        }
+      } catch (error) {
+        console.error("听歌统计读取失败：", error);
       }
-    } catch (error) {
-      console.error("听歌统计读取失败：", error);
+
+      loaded = true;
+
+      // 重放加载期间积累的操作
+      while (pendingOps.length > 0) {
+        pendingOps.shift()();
+      }
+    })();
+
+    return loadPromise;
+  }
+
+  // 加载完成前先排队，完成后立即执行
+  function runWhenLoaded(operation) {
+    if (loaded) {
+      operation();
+      return;
     }
+
+    pendingOps.push(operation);
+    load();
   }
 
   async function flush() {
@@ -84,41 +108,45 @@ export function useListeningStats() {
   function recordPlay(song) {
     if (!song?.id) return;
 
-    const entry = state.value.plays[song.id] ?? {
-      count: 0,
-      seconds: 0,
-      lastAt: 0,
-    };
+    runWhenLoaded(() => {
+      const entry = state.value.plays[song.id] ?? {
+        count: 0,
+        seconds: 0,
+        lastAt: 0,
+      };
 
-    entry.count += 1;
-    entry.lastAt = Date.now();
-    state.value.plays[song.id] = entry;
-    state.value.totalPlays += 1;
-    state.value.updatedAt = Date.now();
-    scheduleFlush();
+      entry.count += 1;
+      entry.lastAt = Date.now();
+      state.value.plays[song.id] = entry;
+      state.value.totalPlays += 1;
+      state.value.updatedAt = Date.now();
+      scheduleFlush();
+    });
   }
 
   // 累积收听秒数（同时记到当天与当前歌曲）
   function addSeconds(seconds) {
     if (!(seconds > 0)) return;
 
-    const key = todayKey();
-    state.value.daily[key] = (state.value.daily[key] ?? 0) + seconds;
+    runWhenLoaded(() => {
+      const key = todayKey();
+      state.value.daily[key] = (state.value.daily[key] ?? 0) + seconds;
 
-    const song = playerStore.currentSong;
-    if (song?.id) {
-      const entry = state.value.plays[song.id] ?? {
-        count: 0,
-        seconds: 0,
-        lastAt: 0,
-      };
-      entry.seconds += seconds;
-      state.value.plays[song.id] = entry;
-    }
+      const song = playerStore.currentSong;
+      if (song?.id) {
+        const entry = state.value.plays[song.id] ?? {
+          count: 0,
+          seconds: 0,
+          lastAt: 0,
+        };
+        entry.seconds += seconds;
+        state.value.plays[song.id] = entry;
+      }
 
-    state.value.totalSeconds += seconds;
-    state.value.updatedAt = Date.now();
-    scheduleFlush();
+      state.value.totalSeconds += seconds;
+      state.value.updatedAt = Date.now();
+      scheduleFlush();
+    });
   }
 
   async function clearStats() {

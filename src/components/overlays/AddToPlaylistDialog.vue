@@ -22,7 +22,7 @@ const emit = defineEmits(["close"]);
 
 const playlistStore = usePlaylistStore();
 const { playlists } = storeToRefs(playlistStore);
-const { addSongToPlaylist, createPlaylist } = usePlaylistActions();
+const { addSongsToPlaylist, createPlaylist } = usePlaylistActions();
 const toast = useToast();
 const { prompt, state: confirmState } = useConfirm();
 
@@ -46,13 +46,15 @@ async function addAllTo(playlist) {
   );
   if (targets.length === 0) return;
 
-  for (const song of targets) {
-    await addSongToPlaylist(playlist.id, song.id);
-  }
+  // 一次事务写入整个歌单
+  const added = await addSongsToPlaylist(
+    playlist.id,
+    targets.map((song) => song.id),
+  );
 
   toast.success(
-    targets.length > 1
-      ? `已把 ${targets.length} 首歌曲添加到「${playlist.name}」`
+    added > 1
+      ? `已把 ${added} 首歌曲添加到「${playlist.name}」`
       : `已添加到「${playlist.name}」`,
   );
   emit("close");

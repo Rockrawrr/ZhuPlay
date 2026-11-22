@@ -6,7 +6,7 @@
  *
  * 使用前提：每一项的高度固定（itemHeight），并且插槽内容不能超过这个高度
  */
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 
 const props = defineProps({
   items: {
@@ -72,6 +72,22 @@ function keyOf(entry) {
 function handleScroll(event) {
   scrollTop.value = event.target.scrollTop;
 }
+
+// 数据变短（例如搜索过滤）时把滚动位置夹回有效范围，否则会停在空白区
+watch(
+  () => props.items.length,
+  () => {
+    const maxScroll = Math.max(
+      0,
+      props.items.length * props.itemHeight - viewportHeight.value,
+    );
+
+    if (scrollTop.value > maxScroll) {
+      scrollTop.value = maxScroll;
+      if (viewport.value) viewport.value.scrollTop = maxScroll;
+    }
+  },
+);
 
 onMounted(() => {
   measure();

@@ -1,6 +1,6 @@
 # ZhuPlay 技术文档
 
-> 版本基线：v1.1.9 · 本地优先的桌面/网页音乐播放器
+> 版本基线：v1.2.0 · 本地优先的桌面/网页音乐播放器
 > 定位：单机、离线可用、数据不过服务器；面向个人与朋友使用
 
 ---
@@ -31,6 +31,7 @@ ZhuPlay 是一个**纯本地**的音乐播放器：
 | 图标 | lucide-vue-next | 全部按需引入 |
 | 桌面 | Electron 45 + electron-builder 26 | NSIS 安装包 / 免安装目录 |
 | 更新 | electron-updater | GitHub Releases（尚未发布） |
+| 质量 | ESLint（flat config）+ Vitest | `npm run lint` / `npm test` |
 
 ---
 
@@ -237,6 +238,7 @@ PlayerBar（唯一持有 store 的播放器组件）
 | 主题 | 实现 |
 | --- | --- |
 | 加载协议 | 生产用自定义 `app://zhuplay/index.html`，**不用 `file://`**（不透明来源，IndexedDB 不可靠）；开发期连 `http://localhost:5173` |
+| 安全策略 | `sandbox: true` + `contextIsolation` + 无 node 集成；`app://` 响应附加 CSP（仅允许自身与 blob） |
 | 单实例 | `requestSingleInstanceLock`，第二次启动通过 `second-instance` → `showMainWindow()` 把隐藏窗口显示出来 |
 | 关闭行为 | 点 × 收进托盘（首次弹气泡提示）；托盘右键「退出」才真正结束 |
 | 窗口记忆 | 关闭/移动/缩放写 `%APPDATA%\ZhuPlay\window-state.json`，启动还原；越界只保留尺寸 |
@@ -264,10 +266,18 @@ preload 只暴露上述方法的薄包装与 `getPathForFile`，不把 `ipcRende
 | 问题 | 方案 |
 | --- | --- |
 | 上万首常驻 blob URL | 音频 LRU 缓存（≤3）、封面按可见性创建、列表虚拟滚动 |
-| 长列表 DOM 爆炸 | `VirtualList`：固定 60px 行高，仅渲染可视区 + overscan |
+| 长列表 DOM 爆炸 | `VirtualList`：固定 60px 行高，仅渲染可视区 + overscan；数据变短时自动夹紧滚动位置 |
 | 搜索卡顿 | 输入 220ms 防抖 |
-| 频繁写库 | 队列/统计 4s 防抖；批量删除只落库一次 |
-| 首屏体积 | 路由级页面静态引入（当前），解析器由 music-metadata 按需分包 |
+| 频繁写库 | 队列/统计 4s 防抖；批量删除/批量加歌单只用一个事务 |
+| 首屏体积 | 仅首页静态引入，其余路由懒加载；移除未使用的 Bootstrap 全量 CSS |
+| 收藏判断 | 列表用 `computed Set`，避免逐行 `includes` 的 O(n²) |
+
+体积对比（本次优化前后）：
+
+| 指标 | 优化前 | 优化后 |
+| --- | --- | --- |
+| CSS（首屏） | 278.7 KB | **33.3 KB** |
+| 主 JS chunk | 310.5 KB | 272.1 KB（页面拆成独立 chunk，如 Library 6.7 KB） |
 
 实测（2000 首注入）：音乐库渲染 22 行、`scrollHeight = 120000`，滚动到底最后一行正确；
 搜索 480ms 出结果、渲染 22 行；收藏 1200 首 → 19 行；歌单 900 首 → 18 行。
@@ -300,6 +310,8 @@ npm run electron:build # NSIS 安装包 release/ZhuPlay-x.y.z-setup.exe
 
 - **Web**：Chrome DevTools → Application → IndexedDB → `ZhuPlayDB`
 - **桌面**：`ZhuPlay.exe --devtools`（或托盘菜单）打开 DevTools
+- **静态检查**：`npm run lint`（ESLint flat config，Vue essential 规则）
+- **单元测试**：`npm test`（Vitest；当前覆盖歌词解析与格式化函数）
 - **自动化验证**：无头 Chrome + CDP
   - `Runtime.evaluate` 注入 store 数据、读取 DOM 状态
   - `Emulation.setDeviceMetricsOverride` 模拟手机宽度

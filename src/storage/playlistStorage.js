@@ -8,6 +8,17 @@ import { createIndexedDBAdapter } from "./adapters/indexedDBAdapter";
 
 const STORE = "playlists";
 
+// 统一成纯对象：索引 + 去除 Proxy / 补齐默认值
+function normalize(playlist) {
+  return {
+    id: playlist.id,
+    name: playlist.name,
+    songIds: Array.isArray(playlist.songIds) ? [...playlist.songIds] : [],
+    createdAt: playlist.createdAt ?? Date.now(),
+    updatedAt: playlist.updatedAt ?? Date.now(),
+  };
+}
+
 // 歌单持久化门面：只依赖 adapter 接口（put / get / getAll / remove / clear），
 // 将来换成 SQLite 或云同步时，只需要换 adapter。
 export function createPlaylistStorage(adapter = createIndexedDBAdapter()) {
@@ -18,13 +29,15 @@ export function createPlaylistStorage(adapter = createIndexedDBAdapter()) {
   async function savePlaylist(playlist) {
     if (!playlist?.id) return;
 
-    await adapter.put(STORE, {
-      id: playlist.id,
-      name: playlist.name,
-      songIds: Array.isArray(playlist.songIds) ? [...playlist.songIds] : [],
-      createdAt: playlist.createdAt ?? Date.now(),
-      updatedAt: playlist.updatedAt ?? Date.now(),
-    });
+    await adapter.put(STORE, normalize(playlist));
+  }
+
+  // 批量保存（同一个事务）：批量增删歌曲后一次性落库
+  async function savePlaylists(playlists) {
+    const rows = (playlists ?? []).filter((item) => item?.id).map(normalize);
+    if (rows.length === 0) return;
+
+    await adapter.putMany(STORE, rows);
   }
 
   // 读取全部歌单，并对旧数据补默认值
@@ -52,6 +65,7 @@ export function createPlaylistStorage(adapter = createIndexedDBAdapter()) {
 
   return {
     savePlaylist,
+    savePlaylists,
     getPlaylists,
     deletePlaylist,
     clearAll,

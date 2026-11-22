@@ -29,7 +29,7 @@ const { clearAllPlaylists } = usePlaylistActions();
 const toast = useToast();
 const { confirm } = useConfirm();
 
-const { songs, favoriteSongs, recentSongs } = storeToRefs(musicStore);
+const { songs, favoriteSongs } = storeToRefs(musicStore);
 const { playlists } = storeToRefs(playlistStore);
 const { queue } = storeToRefs(playerStore);
 

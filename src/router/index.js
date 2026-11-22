@@ -7,14 +7,16 @@ import { ref } from "vue";
 import { createRouter, createWebHashHistory } from "vue-router";
 
 import Home from "@/views/Home.vue";
-import Library from "@/views/Library.vue";
-import Favorites from "@/views/Favorites.vue";
-import RecentPlayed from "@/views/RecentPlayed.vue";
-import RecentImported from "@/views/RecentImported.vue";
-import Playlists from "@/views/Playlists.vue";
-import Search from "@/views/Search.vue";
-import Settings from "@/views/Settings.vue";
-import Stats from "@/views/Stats.vue";
+
+// 首屏只加载首页，其余页面按需加载，首屏 JS 明显更小
+const Library = () => import("@/views/Library.vue");
+const Favorites = () => import("@/views/Favorites.vue");
+const RecentPlayed = () => import("@/views/RecentPlayed.vue");
+const RecentImported = () => import("@/views/RecentImported.vue");
+const Playlists = () => import("@/views/Playlists.vue");
+const Search = () => import("@/views/Search.vue");
+const Settings = () => import("@/views/Settings.vue");
+const Stats = () => import("@/views/Stats.vue");
 
 export const routes = [
   { path: "/", name: "home", component: Home },

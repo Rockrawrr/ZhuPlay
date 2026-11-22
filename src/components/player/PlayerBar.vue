@@ -94,6 +94,8 @@ function handleCycleRepeat() {
         :class="{ active: showLyrics }"
         :disabled="!currentSong"
         title="歌词"
+        aria-label="歌词"
+        :aria-expanded="showLyrics"
         @click="showLyrics = true"
       >
         <ScrollText :size="19" />
@@ -103,6 +105,8 @@ function handleCycleRepeat() {
         class="player-icon queue-button"
         :class="{ active: showQueue }"
         title="播放队列"
+        aria-label="播放队列"
+        :aria-expanded="showQueue"
         @click="showQueue = !showQueue"
       >
         <ListMusic :size="19" />

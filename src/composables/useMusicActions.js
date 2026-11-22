@@ -15,6 +15,7 @@ import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
 import { STORAGE_KEYS } from "@/storage/keys";
 import { releaseAllAudioUrls, releaseSongAudioUrl } from "@/services/assetUrls";
+import { persistSafely } from "@/utils/persist";
 
 export function useMusicActions() {
   const musicStore = useMusicStore();
@@ -216,7 +217,7 @@ export function useMusicActions() {
     }
   }
 
-  // 批量删除：只落一次库、只弹一次提示
+  // 批量删除：歌曲删除、收藏、队列、歌单各只落一次库
   async function removeSongs(ids) {
     const uniqueIds = [...new Set(ids)].filter(Boolean);
     if (uniqueIds.length === 0) return;
@@ -228,27 +229,28 @@ export function useMusicActions() {
       playerStore.resetPlayer();
     }
 
-    for (const id of uniqueIds) {
-      try {
-        await musicStorage.deleteSong(id);
-      } catch (error) {
-        console.error(`歌曲删除失败：${id}`, error);
-      }
+    // 一个事务删掉全部歌曲记录
+    await persistSafely(() => musicStorage.deleteSongs(uniqueIds), {
+      logLabel: "批量删除歌曲失败",
+      toast,
+      errorMessage: "部分歌曲删除失败，请刷新后检查",
+    });
 
+    for (const id of uniqueIds) {
       playerStore.removeFromQueue(id);
       musicStore.removeSong(id);
       releaseSongAudioUrl(id);
     }
 
-    try {
-      await musicStorage.saveMusicData(STORAGE_KEYS.favorites, [
-        ...musicStore.favoriteSongs,
-      ]);
-    } catch (error) {
-      console.error("收藏记录保存失败：", error);
-    }
+    await persistSafely(
+      () =>
+        musicStorage.saveMusicData(STORAGE_KEYS.favorites, [
+          ...musicStore.favoriteSongs,
+        ]),
+      { logLabel: "收藏记录保存失败" },
+    );
 
-    // 从所有歌单里移除这些歌，同一歌单只落库一次
+    // 从所有歌单里移除这些歌，所有歌单一次事务落库
     const changedPlaylists = new Map();
     for (const id of uniqueIds) {
       for (const playlist of playlistStore.removeSongFromAll(id)) {
@@ -256,12 +258,15 @@ export function useMusicActions() {
       }
     }
 
-    for (const playlist of changedPlaylists.values()) {
-      try {
-        await playlistStorage.savePlaylist(playlist);
-      } catch (error) {
-        console.error("歌单更新失败：", error);
-      }
+    if (changedPlaylists.size > 0) {
+      await persistSafely(
+        () => playlistStorage.savePlaylists([...changedPlaylists.values()]),
+        {
+          logLabel: "歌单更新失败",
+          toast,
+          errorMessage: "歌单同步失败，请刷新后检查",
+        },
+      );
     }
 
     toast.success(`已删除 ${uniqueIds.length} 首歌曲`);

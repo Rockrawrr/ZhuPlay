@@ -1,6 +1,6 @@
 /**
  * 应用入口
- * 职责：创建 Vue 实例、挂载 Pinia、按顺序引入全局样式
+ * 职责：创建 Vue 实例、挂载 Pinia、按顺序引入全局样式、兜底错误处理
  * 约定：未来接 vue-router 时也在这里注册，保持“入口只做装配”
  */
 import { createApp } from 'vue'
@@ -8,9 +8,7 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import { router } from './router'
-
-// 引入 Bootstrap 样式
-import 'bootstrap/dist/css/bootstrap.min.css'
+import { useToast } from '@/composables/useToast'
 
 // 引入 ZhuPlay 全局样式
 import './assets/styles/main.css'
@@ -32,6 +30,18 @@ app.use(pinia)
 
 // 注册路由（hash 模式，桌面端用 file:// 也能直接跑）
 app.use(router)
+
+// 兜底错误处理：组件里抛出的异常不再直接白屏，至少给用户一个提示
+app.config.errorHandler = (error, instance, info) => {
+  console.error(`组件错误（${info}）：`, error, instance)
+
+  try {
+    const toast = useToast()
+    toast.error('页面出现异常，操作可能未生效')
+  } catch (toastError) {
+    console.error('提示层不可用：', toastError)
+  }
+}
 
 // 挂载应用
 app.mount('#app')

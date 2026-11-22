@@ -46,3 +46,15 @@ export function formatDateTime(timestamp) {
 
   return new Date(timestamp).toLocaleString("zh-CN");
 }
+
+// 秒数 → 口语化时长（统计页用：3 小时 12 分 / 25 分 30 秒）
+export function formatDuration(seconds) {
+  const total = Math.max(0, Math.round(seconds || 0));
+  if (total < 60) return `${total} 秒`;
+
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+
+  if (hours > 0) return `${hours} 小时 ${minutes} 分`;
+  return `${minutes} 分 ${total % 60} 秒`;
+}

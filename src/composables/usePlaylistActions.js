@@ -8,6 +8,7 @@ import { usePlaylistStore } from "@/stores/playlist";
 import { getPlaylistStorage } from "@/app/services";
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
+import { persistSafely } from "@/utils/persist";
 
 // 歌单的业务动作：先改 store（界面立即响应），再落 IndexedDB
 export function usePlaylistActions() {
@@ -19,12 +20,11 @@ export function usePlaylistActions() {
   async function persist(playlist) {
     if (!playlist) return;
 
-    try {
-      await playlistStorage.savePlaylist(playlist);
-    } catch (error) {
-      console.error("歌单保存失败：", error);
-      toast.error("歌单保存失败，刷新后可能丢失");
-    }
+    await persistSafely(() => playlistStorage.savePlaylist(playlist), {
+      logLabel: "歌单保存失败",
+      toast,
+      errorMessage: "歌单保存失败，刷新后可能丢失",
+    });
   }
 
   async function createPlaylist(name) {
@@ -56,6 +56,25 @@ export function usePlaylistActions() {
 
     await persist(playlist);
     return true;
+  }
+
+  // 一次性把多首歌加进歌单：store 逐首更新，落库只有一个事务
+  async function addSongsToPlaylist(playlistId, songIds) {
+    const added = [];
+
+    for (const songId of songIds) {
+      const playlist = playlistStore.addSong(playlistId, songId);
+      if (playlist) added.push(songId);
+    }
+
+    if (added.length === 0) return 0;
+
+    const playlist = playlistStore.playlists.find(
+      (item) => item.id === playlistId,
+    );
+    await persist(playlist);
+
+    return added.length;
   }
 
   async function removeSongFromPlaylist(playlistId, songId) {
@@ -95,6 +114,7 @@ export function usePlaylistActions() {
     deletePlaylist,
     clearAllPlaylists,
     addSongToPlaylist,
+    addSongsToPlaylist,
     removeSongFromPlaylist,
   };
 }

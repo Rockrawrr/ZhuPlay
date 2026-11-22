@@ -18,6 +18,7 @@ const {
   net,
   protocol,
   screen,
+  session,
   shell,
   Tray,
 } = require("electron");
@@ -114,6 +115,34 @@ function registerAppProtocol() {
       return new Response("Not Found", { status: 404 });
     }
   });
+}
+
+// 生产页面的内容安全策略：只允许自身资源与 blob（封面/音频）
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' blob: data:",
+  "media-src 'self' blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'none'",
+].join("; ");
+
+function applyContentSecurityPolicy() {
+  session.defaultSession.webRequest.onHeadersReceived(
+    { urls: ["app://*/*"] },
+    (details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          "Content-Security-Policy": [CONTENT_SECURITY_POLICY],
+        },
+      });
+    },
+  );
 }
 
 let mainWindow = null;
@@ -309,7 +338,8 @@ function createWindow() {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      // 预加载脚本只用 contextBridge / ipcRenderer / webUtils，这些在沙箱下都可用
+      sandbox: true,
       spellcheck: false,
     },
   });
@@ -406,6 +436,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     registerAppProtocol();
+    applyContentSecurityPolicy();
 
     // 渲染进程请求「在文件夹中显示」
     ipcMain.handle("shell:show-item-in-folder", (_event, filePath) => {

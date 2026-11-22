@@ -61,6 +61,8 @@ const emit = defineEmits(["toggle-favorite", "open-lyrics"]);
       :class="{ active: isFavorite }"
       :disabled="!song"
       :title="isFavorite ? '取消喜欢' : '添加喜欢'"
+      :aria-label="isFavorite ? '取消喜欢' : '添加喜欢'"
+      :aria-pressed="isFavorite"
       @click="emit('toggle-favorite')"
     >
       <Heart :size="19" :fill="isFavorite ? '#1ed760' : 'none'" />

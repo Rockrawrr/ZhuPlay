@@ -1,7 +1,7 @@
 /**
  * 歌曲对象工厂
  * 负责：校验文件类型、生成数据模型
- * 注意：这里不再创建 blob 地址 —— 播放地址由 services/assetUrls.js 按需创建，
+ * 注意：这里不创建 blob 地址 —— 播放地址由 services/assetUrls.js 按需创建，
  * 封面地址由组件里的 useObjectUrl 按需创建，避免上万首歌常驻 URL
  */
 import { createSongModel } from "../models/song";
@@ -17,12 +17,4 @@ export function createSong(file, metadata = {}) {
   }
 
   return createSongModel(file, metadata);
-}
-
-// 释放歌曲资源（兼容旧数据里可能存在的 url / coverUrl）
-export function releaseSong(song) {
-  if (!song) return;
-
-  if (song.url) URL.revokeObjectURL(song.url);
-  if (song.coverUrl) URL.revokeObjectURL(song.coverUrl);
 }
