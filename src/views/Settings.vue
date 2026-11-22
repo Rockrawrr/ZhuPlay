@@ -11,6 +11,7 @@ import { usePlayerStore } from "@/stores/player";
 import { getMusicStorage, getPlaylistStorage } from "@/app/services";
 import { useMusicActions } from "@/composables/useMusicActions";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
 import PageHeader from "@/components/PageHeader.vue";
 
 const musicStore = useMusicStore();
@@ -22,6 +23,7 @@ const playlistStorage = getPlaylistStorage();
 
 const { clearRecentSongs } = useMusicActions();
 const toast = useToast();
+const { confirm } = useConfirm();
 
 const { songs, favoriteSongs, recentSongs } = storeToRefs(musicStore);
 const { playlists } = storeToRefs(playlistStore);
@@ -85,9 +87,12 @@ function handleClearQueue() {
 
 // 清空全部数据：删除歌曲、收藏、歌单与播放记录，然后刷新
 async function handleClearAll() {
-  const confirmed = window.confirm(
-    "将删除本地的全部歌曲、收藏、歌单与播放记录，且无法恢复。确定继续吗？",
-  );
+  const confirmed = await confirm({
+    title: "清空全部数据",
+    message: "将删除本地的全部歌曲、收藏、歌单与播放记录，且无法恢复。",
+    confirmText: "全部删除",
+    danger: true,
+  });
   if (!confirmed) return;
 
   try {

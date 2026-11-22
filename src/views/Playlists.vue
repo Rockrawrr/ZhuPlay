@@ -1,8 +1,6 @@
 <script setup>
-// 歌单页容器：列表 / 详情两种模式由 currentPlaylistId 决定
+// 歌单页容器：列表 / 详情两种模式由路由参数决定
 // 这里负责业务动作（新建、改名、删除、加歌、移歌）与播放，UI 细节在 components/playlist/ 下
-// 已知限制：新建/重命名用 window.prompt、删除用 window.confirm，
-// 而 Electron 不支持 prompt，桌面封装前需要替换成自定义弹窗
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { ListMusic, Plus } from "lucide-vue-next";
@@ -12,6 +10,7 @@ import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useNavigation } from "@/composables/useNavigation";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
 import PageHeader from "@/components/PageHeader.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import PlaylistCard from "@/components/playlist/PlaylistCard.vue";
@@ -34,6 +33,7 @@ const {
 const { playSong } = useAudioPlayer();
 const { params, navigateTo } = useNavigation();
 const toast = useToast();
+const { confirm, prompt } = useConfirm();
 
 // 列表 / 详情由路由参数决定：/playlists 为列表，/playlists/:id 为详情
 const currentPlaylistId = computed(() => params.value.id ?? null);
@@ -54,7 +54,12 @@ const currentSongs = computed(() => {
 const showAddPanel = ref(false);
 
 async function handleCreate() {
-  const name = window.prompt("新歌单名称", `歌单 ${playlists.value.length + 1}`);
+  const name = await prompt({
+    title: "新建歌单",
+    value: `歌单 ${playlists.value.length + 1}`,
+    placeholder: "歌单名称",
+    confirmText: "创建",
+  });
   if (name === null) return;
 
   const playlist = await createPlaylist(name);
@@ -63,17 +68,25 @@ async function handleCreate() {
 }
 
 async function handleRename(playlist) {
-  const name = window.prompt("重命名歌单", playlist.name);
-  if (name === null || name.trim() === playlist.name) return;
+  const name = await prompt({
+    title: "重命名歌单",
+    value: playlist.name,
+    placeholder: "歌单名称",
+    confirmText: "保存",
+  });
+  if (name === null || name === playlist.name) return;
 
   await renamePlaylist(playlist.id, name);
   toast.success("歌单已重命名");
 }
 
 async function handleDelete(playlist) {
-  const confirmed = window.confirm(
-    `确定删除歌单「${playlist.name}」吗？歌单里的歌曲不会被删除。`,
-  );
+  const confirmed = await confirm({
+    title: "删除歌单",
+    message: `确定删除「${playlist.name}」吗？歌单里的歌曲不会被删除。`,
+    confirmText: "删除",
+    danger: true,
+  });
   if (!confirmed) return;
 
   const wasCurrent = playlist.id === currentPlaylistId.value;

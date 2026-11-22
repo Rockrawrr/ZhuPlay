@@ -8,6 +8,7 @@ import { Check, ListMusic, Plus, X } from "lucide-vue-next";
 import { usePlaylistStore } from "@/stores/playlist";
 import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
 
 const props = defineProps({
   // 要添加的歌曲
@@ -23,6 +24,7 @@ const playlistStore = usePlaylistStore();
 const { playlists } = storeToRefs(playlistStore);
 const { addSongToPlaylist, createPlaylist } = usePlaylistActions();
 const toast = useToast();
+const { prompt, state: confirmState } = useConfirm();
 
 function hasSong(playlist) {
   return playlist.songIds.includes(props.song.id);
@@ -39,7 +41,13 @@ async function handleAdd(playlist) {
 
 // 新建歌单并把当前歌曲一起放进去
 async function handleCreate() {
-  const name = window.prompt("新歌单名称", "新建歌单");
+  const name = await prompt({
+    title: "新建歌单并添加",
+    value: "新建歌单",
+    placeholder: "歌单名称",
+    confirmText: "创建",
+    message: `会把「${props.song.name}」放进新歌单`,
+  });
   if (name === null) return;
 
   const playlist = await createPlaylist(name);
@@ -49,7 +57,11 @@ async function handleCreate() {
 }
 
 function handleKeydown(event) {
-  if (event.key === "Escape") emit("close");
+  if (event.key !== "Escape") return;
+  // 全局对话框（新建歌单）打开时，Esc 先交给它处理
+  if (confirmState.visible) return;
+
+  emit("close");
 }
 
 onMounted(() => window.addEventListener("keydown", handleKeydown));

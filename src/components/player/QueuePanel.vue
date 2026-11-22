@@ -6,12 +6,14 @@ import { storeToRefs } from "pinia";
 import { ListMusic, Music2, Play, X } from "lucide-vue-next";
 import { usePlayerStore } from "@/stores/player";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
+import { useConfirm } from "@/composables/useConfirm";
 
 const emit = defineEmits(["close"]);
 
 const playerStore = usePlayerStore();
 const { queue, currentIndex } = storeToRefs(playerStore);
 const { playSong } = useAudioPlayer();
+const { state: confirmState } = useConfirm();
 
 // 点击队列里的歌曲：沿用当前队列作为上下文，避免上下文丢失
 function playAt(index) {
@@ -21,7 +23,11 @@ function playAt(index) {
 }
 
 function handleKeydown(event) {
-  if (event.key === "Escape") emit("close");
+  if (event.key !== "Escape") return;
+  // 全局对话框打开时，Esc 先交给它处理
+  if (confirmState.visible) return;
+
+  emit("close");
 }
 
 onMounted(() => window.addEventListener("keydown", handleKeydown));

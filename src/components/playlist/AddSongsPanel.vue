@@ -3,6 +3,7 @@
 // 搜索状态是本组件私有的，关闭即销毁；是否已加入由 existingIds 决定
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { Music2, Plus, Search, X } from "lucide-vue-next";
+import { useConfirm } from "@/composables/useConfirm";
 
 const props = defineProps({
   playlistName: {
@@ -23,6 +24,8 @@ const props = defineProps({
 
 const emit = defineEmits(["add", "close"]);
 
+const { state: confirmState } = useConfirm();
+
 const filter = ref("");
 
 const usedIds = computed(() => new Set(props.existingIds));
@@ -42,7 +45,10 @@ const addableSongs = computed(() => {
 });
 
 function handleKeydown(event) {
-  if (event.key === "Escape") emit("close");
+  if (event.key !== "Escape") return;
+  if (confirmState.visible) return;
+
+  emit("close");
 }
 
 onMounted(() => window.addEventListener("keydown", handleKeydown));

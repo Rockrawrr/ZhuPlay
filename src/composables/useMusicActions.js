@@ -12,6 +12,7 @@ import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";
 import { usePlaylistStore } from "@/stores/playlist";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
 
 export function useMusicActions() {
   const musicStore = useMusicStore();
@@ -21,6 +22,7 @@ export function useMusicActions() {
   const playlistStorage = getPlaylistStorage();
   const audioService = getAudioService();
   const toast = useToast();
+  const { confirm } = useConfirm();
 
   const { songs } = storeToRefs(musicStore);
   const { currentSong } = storeToRefs(playerStore);
@@ -71,7 +73,13 @@ export function useMusicActions() {
 
   // 清空最近播放：内存 + 落库都要清，否则刷新后记录会回来
   async function clearRecentSongs() {
-    if (!window.confirm("确定清空最近播放记录吗？")) return;
+    const confirmed = await confirm({
+      title: "清空最近播放",
+      message: "只清除播放记录，不影响歌曲与歌单，且无法恢复。",
+      confirmText: "清空",
+      danger: true,
+    });
+    if (!confirmed) return;
 
     musicStore.clearRecentSongs();
 
