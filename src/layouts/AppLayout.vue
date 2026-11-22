@@ -12,6 +12,8 @@ import Favorites from "@/views/Favorites.vue";
 import RecentPlayed from "@/views/RecentPlayed.vue";
 import RecentImported from "@/views/RecentImported.vue";
 import Playlists from "@/views/Playlists.vue";
+import SearchView from "@/views/Search.vue";
+import SettingsView from "@/views/Settings.vue";
 
 const viewMap = {
   home: Home,
@@ -20,6 +22,8 @@ const viewMap = {
   "recent-played": RecentPlayed,
   "recent-imported": RecentImported,
   playlists: Playlists,
+  search: SearchView,
+  settings: SettingsView,
 };
 
 const { currentPage } = useNavigation();

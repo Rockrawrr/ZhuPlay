@@ -45,9 +45,15 @@ export function createPlaylistStorage(adapter = createIndexedDBAdapter()) {
     await adapter.remove(STORE, playlistId);
   }
 
+  // 清空全部歌单（设置页“清空全部数据”使用）
+  async function clearAll() {
+    await adapter.clear(STORE);
+  }
+
   return {
     savePlaylist,
     getPlaylists,
     deletePlaylist,
+    clearAll,
   };
 }

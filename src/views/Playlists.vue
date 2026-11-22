@@ -11,6 +11,7 @@ import { useMusicStore } from "@/stores/music";
 import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useNavigation } from "@/composables/useNavigation";
+import { useToast } from "@/composables/useToast";
 import PlaylistCard from "@/components/playlist/PlaylistCard.vue";
 import PlaylistDetail from "@/components/playlist/PlaylistDetail.vue";
 import AddSongsPanel from "@/components/playlist/AddSongsPanel.vue";
@@ -30,6 +31,7 @@ const {
 } = usePlaylistActions();
 const { playSong } = useAudioPlayer();
 const { canGoBack, goBack } = useNavigation();
+const toast = useToast();
 
 const currentPlaylist = computed(() =>
   playlistStore.playlistById(currentPlaylistId.value),
@@ -52,6 +54,7 @@ async function handleCreate() {
 
   const playlist = await createPlaylist(name);
   playlistStore.setCurrentPlaylist(playlist.id);
+  toast.success(`已创建「${playlist.name}」`);
 }
 
 async function handleRename(playlist) {
@@ -59,6 +62,7 @@ async function handleRename(playlist) {
   if (name === null || name.trim() === playlist.name) return;
 
   await renamePlaylist(playlist.id, name);
+  toast.success("歌单已重命名");
 }
 
 async function handleDelete(playlist) {
@@ -68,6 +72,7 @@ async function handleDelete(playlist) {
   if (!confirmed) return;
 
   await deletePlaylist(playlist.id);
+  toast.success(`已删除「${playlist.name}」`);
 }
 
 // 播放整张歌单：以歌单歌曲作为播放上下文

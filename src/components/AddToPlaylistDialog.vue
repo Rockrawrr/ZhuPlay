@@ -7,6 +7,7 @@ import { storeToRefs } from "pinia";
 import { Check, ListMusic, Plus, X } from "lucide-vue-next";
 import { usePlaylistStore } from "@/stores/playlist";
 import { usePlaylistActions } from "@/composables/usePlaylistActions";
+import { useToast } from "@/composables/useToast";
 
 const props = defineProps({
   // 要添加的歌曲
@@ -21,6 +22,7 @@ const emit = defineEmits(["close"]);
 const playlistStore = usePlaylistStore();
 const { playlists } = storeToRefs(playlistStore);
 const { addSongToPlaylist, createPlaylist } = usePlaylistActions();
+const toast = useToast();
 
 function hasSong(playlist) {
   return playlist.songIds.includes(props.song.id);
@@ -31,6 +33,7 @@ async function handleAdd(playlist) {
   if (hasSong(playlist)) return;
 
   await addSongToPlaylist(playlist.id, props.song.id);
+  toast.success(`已添加到「${playlist.name}」`);
   emit("close");
 }
 
@@ -41,6 +44,7 @@ async function handleCreate() {
 
   const playlist = await createPlaylist(name);
   await addSongToPlaylist(playlist.id, props.song.id);
+  toast.success(`已新建「${playlist.name}」并添加`);
   emit("close");
 }
 

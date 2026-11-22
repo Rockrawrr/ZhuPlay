@@ -11,6 +11,7 @@ import {
   Music2,
   Clock3,
   Download,
+  Settings,
 } from "lucide-vue-next";
 import { useNavigation } from "@/composables/useNavigation";
 import { usePlaylistStore } from "@/stores/playlist";
@@ -63,7 +64,14 @@ async function handleCreatePlaylist() {
       >
         <Download :size="21" /><span>最近导入</span>
       </a>
-      <a class="nav-item" href="#"> <Search :size="21" /><span>搜索</span> </a>
+      <a
+        class="nav-item"
+        :class="{ active: currentPage === 'search' }"
+        href="#"
+        @click.prevent="navigateTo('search')"
+      >
+        <Search :size="21" /><span>搜索</span>
+      </a>
     </nav>
 
     <div class="library-section">
@@ -102,6 +110,18 @@ async function handleCreatePlaylist() {
         <ListMusic :size="21" /><span>我的歌单</span>
       </a>
     </div>
+
+    <!-- 底部：设置入口 -->
+    <div class="sidebar-footer">
+      <a
+        class="nav-item"
+        :class="{ active: currentPage === 'settings' }"
+        href="#"
+        @click.prevent="navigateTo('settings')"
+      >
+        <Settings :size="21" /><span>设置</span>
+      </a>
+    </div>
   </aside>
 </template>
 
@@ -132,6 +152,10 @@ async function handleCreatePlaylist() {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.sidebar-footer {
+  margin-top: auto;
 }
 
 .nav-item {

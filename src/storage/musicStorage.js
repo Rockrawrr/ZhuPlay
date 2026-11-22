@@ -66,12 +66,19 @@ async function getSongs() {
     await adapter.remove('musicData', key)
   }
 
+  // 清空歌曲与零散音乐数据（设置页“清空全部数据”使用）
+  async function clearAll() {
+    await adapter.clear('songs')
+    await adapter.clear('musicData')
+  }
+
   return {
     saveSong,
     getSongs,
     deleteSong,
     saveMusicData,
     getMusicData,
-    deleteMusicData
+    deleteMusicData,
+    clearAll
   }
 }

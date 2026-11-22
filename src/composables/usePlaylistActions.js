@@ -6,11 +6,13 @@
  */
 import { usePlaylistStore } from "@/stores/playlist";
 import { getPlaylistStorage } from "@/app/services";
+import { useToast } from "@/composables/useToast";
 
 // 歌单的业务动作：先改 store（界面立即响应），再落 IndexedDB
 export function usePlaylistActions() {
   const playlistStore = usePlaylistStore();
   const playlistStorage = getPlaylistStorage();
+  const toast = useToast();
 
   async function persist(playlist) {
     if (!playlist) return;
@@ -19,6 +21,7 @@ export function usePlaylistActions() {
       await playlistStorage.savePlaylist(playlist);
     } catch (error) {
       console.error("歌单保存失败：", error);
+      toast.error("歌单保存失败，刷新后可能丢失");
     }
   }
 
