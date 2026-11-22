@@ -8,6 +8,7 @@ import {
   Plus,
   Music2,
   Clock3,
+  Download,
 } from "lucide-vue-next";
 
 defineProps({
@@ -50,6 +51,16 @@ const emit = defineEmits(["navigate"]);
       >
         <Clock3 :size="21" />
         <span>最近播放</span>
+      </a>
+
+      <a
+        class="nav-item"
+        :class="{ active: currentPage === 'recent-imported' }"
+        href="#"
+        @click.prevent="emit('navigate', 'recent-imported')"
+      >
+        <Download :size="21" />
+        <span>最近导入</span>
       </a>
 
       <!-- 搜索 -->

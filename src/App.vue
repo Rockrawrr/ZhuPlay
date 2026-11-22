@@ -1,11 +1,12 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 
 import Sidebar from "./components/Sidebar.vue";
 import MainContent from "./components/MainContent.vue";
 import MusicLibrary from "./components/MusicLibrary.vue";
 import FavoriteMusic from "./components/FavoriteMusic.vue";
 import RecentPlayed from "./components/RecentPlayed.vue";
+import RecentImported from "./components/RecentImported.vue";
 import MusicPlayer from "./components/MusicPlayer.vue";
 import { storeToRefs } from "pinia";
 import { useMusicStore } from "./stores/music";
@@ -43,6 +44,12 @@ const currentPage = ref("home");
 // 页面导航历史
 const navigationHistory = ref([]);
 
+const sortedImportedSongs = computed(() => {
+  return [...songs.value].sort(
+    (a, b) => (b.importedAt ?? 0) - (a.importedAt ?? 0),
+  );
+});
+
 // 页面跳转并记录历史
 function navigateTo(page) {
   if (page === currentPage.value) return;
@@ -60,17 +67,11 @@ function goBack() {
 
 // 清空最近播放记录
 function clearRecentSongs() {
-  console.log("清空记录按钮已触发");
-
   const confirmed = window.confirm("确定清空最近播放记录吗？");
-
-  console.log("用户确认结果：", confirmed);
 
   if (!confirmed) return;
 
   musicStore.clearRecentSongs();
-
-  console.log("清空后的记录：", musicStore.recentSongs);
 }
 
 const toggleFavorite = musicStore.toggleFavorite;
@@ -236,8 +237,6 @@ function seek(time) {
 }
 
 // 删除歌曲
-
-// 删除歌曲
 async function removeSong(id) {
   const song = songs.value.find((item) => item.id === id);
 
@@ -259,6 +258,9 @@ async function removeSong(id) {
 
   // 从音乐列表中删除
   songs.value = songs.value.filter((item) => item.id !== id);
+
+  // 从最近播放记录中删除
+  musicStore.removeRecentSong(id);
 
   // 释放歌曲资源
   releaseSong(song);
@@ -339,6 +341,14 @@ onUnmounted(() => {
         :can-go-back="navigationHistory.length > 0"
         @play-song="playSong"
         @clear-recent="clearRecentSongs"
+        @go-back="goBack"
+      />
+
+      <RecentImported
+        v-else-if="currentPage === 'recent-imported'"
+        :songs="sortedImportedSongs"
+        :can-go-back="navigationHistory.length > 0"
+        @play-song="playSong"
         @go-back="goBack"
       />
 

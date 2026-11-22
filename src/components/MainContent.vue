@@ -150,7 +150,7 @@ function handleQuickCardClick(id) {
       <div class="section-header">
         <h2>为你推荐</h2>
 
-        <button @click="emit('navigate', 'library')">查看全部</button>
+        <button @click="emit('navigate', 'recent-imported')">查看全部</button>
       </div>
 
       <!-- 有歌曲时展示精选歌曲 -->
@@ -197,7 +197,7 @@ function handleQuickCardClick(id) {
     <section id="recent-imported" class="recent-section">
       <div class="section-header">
         <h2>最近导入</h2>
-        <button @click="emit('navigate', 'library')">查看全部</button>
+        <button @click="emit('navigate', 'recent-imported')">查看全部</button>
       </div>
 
       <div v-if="recentImportedSongs.length > 0" class="recent-list">
