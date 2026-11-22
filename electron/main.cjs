@@ -30,6 +30,13 @@ const APP_HOST = "zhuplay";
 const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || "http://localhost:5173";
 const IS_DEV = !app.isPackaged;
 
+// 开发者工具：开发期默认可用；打包版默认关闭，避免朋友误触后关不掉
+// 需要排查线上问题时，用 `ZhuPlay.exe --devtools` 启动即可
+const DEVTOOLS_ENABLED =
+  IS_DEV ||
+  process.argv.includes("--devtools") ||
+  process.env.ZHUPLAY_DEVTOOLS === "1";
+
 // 打包后 dist 在 app.asar 内，用 __dirname 相对定位
 const DIST_DIR = path.join(__dirname, "..", "dist");
 
@@ -142,10 +149,22 @@ function showMainWindow() {
 function buildTrayMenu() {
   const autoStart = app.getLoginItemSettings().openAtLogin;
 
-  return Menu.buildFromTemplate([
+  const template = [
     { label: "打开 ZhuPlay", click: showMainWindow },
     { label: "隐藏到托盘", click: () => mainWindow?.hide() },
     { type: "separator" },
+  ];
+
+  // 兜底入口：即使 DevTools 抢了焦点，也能从托盘把它关掉
+  if (DEVTOOLS_ENABLED) {
+    template.push({
+      label: "切换开发者工具",
+      click: () => mainWindow?.webContents.toggleDevTools(),
+    });
+    template.push({ type: "separator" });
+  }
+
+  template.push(
     {
       label: `开机自启：${autoStart ? "已开启" : "已关闭"}`,
       click: () => {
@@ -164,7 +183,9 @@ function buildTrayMenu() {
         app.quit();
       },
     },
-  ]);
+  );
+
+  return Menu.buildFromTemplate(template);
 }
 
 function createTray() {
@@ -340,13 +361,34 @@ function createWindow() {
     mainWindow.loadURL(`${APP_SCHEME}://${APP_HOST}/index.html`);
   }
 
-  // F12 / Ctrl+Shift+I 打开开发者工具，方便桌面端排查
-  mainWindow.webContents.on("before-input-event", (event, input) => {
-    if (input.key === "F12") {
-      mainWindow.webContents.toggleDevTools();
+  // F12 / Ctrl+Shift+I 开关开发者工具
+  // 注意：DevTools 打开后焦点在它的 webContents 上，主窗口收不到按键。
+  // 打包版默认禁用；开启时额外给 devToolsWebContents 挂关闭监听，并保留托盘兜底入口
+  const isDevToolsToggle = (input) =>
+    input.type === "keyDown" &&
+    (input.key === "F12" ||
+      (input.control && input.shift && input.key.toLowerCase() === "i"));
+
+  if (DEVTOOLS_ENABLED) {
+    mainWindow.webContents.on("before-input-event", (event, input) => {
+      if (!isDevToolsToggle(input)) return;
+
       event.preventDefault();
-    }
-  });
+      mainWindow.webContents.toggleDevTools();
+    });
+
+    mainWindow.webContents.on("devtools-opened", () => {
+      const devTools = mainWindow.webContents.devToolsWebContents;
+      if (!devTools) return;
+
+      devTools.on("before-input-event", (event, input) => {
+        if (!isDevToolsToggle(input)) return;
+
+        event.preventDefault();
+        mainWindow.webContents.closeDevTools();
+      });
+    });
+  }
 
   mainWindow.on("closed", () => {
     mainWindow = null;

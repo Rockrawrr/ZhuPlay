@@ -137,7 +137,8 @@ Electron 相关的设计：
 
 - **自定义协议 `app://`**：生产环境不用 `file://`。`file://` 属于不透明来源，IndexedDB 行为不可靠，而歌曲、歌单、封面全部存在 IndexedDB 里
 - **主进程用 `.cjs`**：项目 `package.json` 是 `"type": "module"`，主进程保持 CommonJS 才能用 `require`
-- **preload 只暴露必要能力**：`window.zhuplayDesktop` 提供 `isDesktop` / `platform` / `versions` / `getPathForFile` / `showItemInFolder`
+- **preload 只暴露必要能力**：`window.zhuplayDesktop` 提供 `isDesktop` / `platform` / `versions` / `getPathForFile` / `showItemInFolder` / 数据目录与备份相关接口
+- **开发者工具**：打包版默认禁用（避免误触后关不掉）；排查问题时用 `ZhuPlay.exe --devtools` 启动，托盘菜单里也有「切换开发者工具」兜底
 
 桌面端专属能力：
 
