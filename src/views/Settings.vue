@@ -12,7 +12,8 @@ import { getMusicStorage, getPlaylistStorage } from "@/app/services";
 import { useMusicActions } from "@/composables/useMusicActions";
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
-import PageHeader from "@/components/PageHeader.vue";
+import { formatBytes } from "@/utils/format";
+import PageHeader from "@/components/common/PageHeader.vue";
 
 const musicStore = useMusicStore();
 const playlistStore = usePlaylistStore();
@@ -59,15 +60,6 @@ async function loadStorage() {
   } catch (error) {
     console.error("存储用量读取失败：", error);
   }
-}
-
-function formatBytes(bytes) {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
-
-  const units = ["B", "KB", "MB", "GB"];
-  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-
-  return `${(bytes / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
 // 清空最近播放：useMusicActions 里已含二次确认与落库

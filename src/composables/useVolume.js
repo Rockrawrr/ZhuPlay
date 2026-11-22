@@ -6,9 +6,9 @@
  */
 import { usePlayerStore } from "@/stores/player";
 import { getAudioService, getMusicStorage } from "@/app/services";
+import { STORAGE_KEYS } from "@/storage/keys";
 
-// IndexedDB 里的 key
-const VOLUME_KEY = "volume";
+const VOLUME_KEY = STORAGE_KEYS.volume;
 
 // 拖动滑块会连续触发，写入做 300ms 防抖
 const SAVE_DELAY = 300;

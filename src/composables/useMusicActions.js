@@ -13,6 +13,7 @@ import { usePlayerStore } from "@/stores/player";
 import { usePlaylistStore } from "@/stores/playlist";
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
+import { STORAGE_KEYS } from "@/storage/keys";
 
 export function useMusicActions() {
   const musicStore = useMusicStore();
@@ -63,7 +64,7 @@ export function useMusicActions() {
   async function toggleFavorite(songId) {
     musicStore.toggleFavorite(songId);
     try {
-      await musicStorage.saveMusicData("favorites", [
+      await musicStorage.saveMusicData(STORAGE_KEYS.favorites, [
         ...musicStore.favoriteSongs,
       ]);
     } catch (error) {
@@ -84,11 +85,27 @@ export function useMusicActions() {
     musicStore.clearRecentSongs();
 
     try {
-      await musicStorage.saveMusicData("recentSongIds", []);
+      await musicStorage.saveMusicData(STORAGE_KEYS.recentSongs, []);
       toast.success("已清空最近播放");
     } catch (error) {
       console.error("最近播放清空失败：", error);
       toast.error("清空失败，请重试");
+    }
+  }
+
+  // 从最近播放里移除单首歌（右键菜单用），需要同步落库
+  async function removeRecentSong(songId) {
+    musicStore.removeRecentSong(songId);
+
+    try {
+      await musicStorage.saveMusicData(
+        STORAGE_KEYS.recentSongs,
+        musicStore.recentSongs.map((song) => song.id),
+      );
+      toast.success("已从最近播放移除");
+    } catch (error) {
+      console.error("最近播放更新失败：", error);
+      toast.error("更新失败，请重试");
     }
   }
 
@@ -113,7 +130,7 @@ export function useMusicActions() {
     }
 
     musicStore.removeSong(id);
-    await musicStorage.saveMusicData("favorites", [
+    await musicStorage.saveMusicData(STORAGE_KEYS.favorites, [
       ...musicStore.favoriteSongs,
     ]);
 
@@ -132,5 +149,11 @@ export function useMusicActions() {
     toast.success("已删除歌曲");
   }
 
-  return { importSongs, toggleFavorite, clearRecentSongs, removeSong };
+  return {
+    importSongs,
+    toggleFavorite,
+    clearRecentSongs,
+    removeRecentSong,
+    removeSong,
+  };
 }

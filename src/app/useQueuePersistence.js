@@ -8,9 +8,9 @@ import { watch } from "vue";
 import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";
 import { getMusicStorage, getAudioService } from "@/app/services";
+import { STORAGE_KEYS } from "@/storage/keys";
 
-// IndexedDB 里的 key
-const QUEUE_KEY = "playQueue";
+const QUEUE_KEY = STORAGE_KEYS.queue;
 
 // 播放队列持久化
 // 只存 songId 数组 + 当前下标：File / blob 地址刷新后都会失效，

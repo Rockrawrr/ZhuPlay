@@ -12,6 +12,7 @@ import { releaseSong } from "@/services/musicService";
 import { destroyAudioPlayer } from "@/composables/useAudioPlayer";
 import { useQueuePersistence } from "@/app/useQueuePersistence";
 import { useVolume } from "@/composables/useVolume";
+import { STORAGE_KEYS } from "@/storage/keys";
 
 export function useAppBootstrap() {
   const musicStore = useMusicStore();
@@ -27,12 +28,15 @@ export function useAppBootstrap() {
       musicStore.setSongs(savedSongs);
       console.log(`成功恢复 ${savedSongs.length} 首歌曲`);
 
-      const savedFavorites = await musicStorage.getMusicData("favorites", []);
+      const savedFavorites = await musicStorage.getMusicData(
+        STORAGE_KEYS.favorites,
+        [],
+      );
       musicStore.setFavorites(savedFavorites);
       console.log(`成功恢复 ${musicStore.favoriteSongs.length} 首收藏`);
 
       const savedRecentIds = await musicStorage.getMusicData(
-        "recentSongIds",
+        STORAGE_KEYS.recentSongs,
         [],
       );
       musicStore.setRecentSongs(savedRecentIds);

@@ -115,6 +115,48 @@
 
 /* 说明：空状态统一由 components/EmptyState.vue 提供，这里不再定义 .empty-state */
 
+/* 区块标题（首页各区块共用：为你推荐 / 最近导入 / 最近播放） */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.section-header h2 {
+  font-size: 23px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.section-header button {
+  border: none;
+  background: transparent;
+  color: #b3b3b3;
+  font-size: 12px;
+}
+
+@media (max-width: 700px) {
+  .section-header {
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+
+  .section-header h2 {
+    font-size: 18px;
+    line-height: 1.4;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .section-header > button {
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
 @media (max-width: 700px) {
   .page-shell {
     padding: 20px 16px;

@@ -3,14 +3,23 @@
 // 支持两种导入方式：点按钮选择文件、把文件拖进页面
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { Upload, Music2, ArrowLeft, Heart, HardDrive } from "lucide-vue-next";
-import SongItem from "@/components/SongItem.vue";
-import AddToPlaylistDialog from "@/components/AddToPlaylistDialog.vue";
+import {
+  Upload,
+  Music2,
+  ArrowLeft,
+  Heart,
+  HardDrive,
+  Trash2,
+} from "lucide-vue-next";
+import SongRow from "@/components/common/SongRow.vue";
 import { useMusicStore } from "@/stores/music";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useMusicActions } from "@/composables/useMusicActions";
 import { useNavigation } from "@/composables/useNavigation";
 import { useToast } from "@/composables/useToast";
+import { useSongMenu } from "@/composables/useSongMenu";
+import { usePlaylistPicker } from "@/composables/useOverlays";
+import { formatBytes } from "@/utils/format";
 
 const musicStore = useMusicStore();
 const { songs, favoriteSongs } = storeToRefs(musicStore);
@@ -19,11 +28,10 @@ const { playSong } = useAudioPlayer();
 const { importSongs, removeSong, toggleFavorite } = useMusicActions();
 const { canGoBack, goBack } = useNavigation();
 const toast = useToast();
+const { openSongMenu } = useSongMenu();
+const { openPlaylistPicker } = usePlaylistPicker();
 
 const fileInput = ref(null);
-
-// 正在添加到歌单的歌曲（null 时弹窗关闭）
-const pendingPlaylistSong = ref(null);
 
 // 拖拽计数：dragenter/dragleave 会冒泡触发很多次，用计数避免闪烁
 const dragDepth = ref(0);
@@ -36,17 +44,13 @@ const totalSize = computed(() =>
   songs.value.reduce((sum, song) => sum + (song.fileSize || 0), 0),
 );
 
-function formatSize(bytes) {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
-
-  const units = ["B", "KB", "MB", "GB"];
-  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-
-  return `${(bytes / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+function handleAddToPlaylist(song) {
+  openPlaylistPicker(song);
 }
 
-function handleAddToPlaylist(song) {
-  pendingPlaylistSong.value = song;
+// 右键歌曲行：打开统一的歌曲菜单
+function handleSongMenu(event, song) {
+  openSongMenu(event, song, { source: "library", list: songs.value });
 }
 
 function openFilePicker() {
@@ -118,7 +122,7 @@ function onDrop(event) {
           <p v-else class="library-stats">
             <span>{{ songs.length }} 首歌曲</span>
             <span class="dot" aria-hidden="true">·</span>
-            <span><HardDrive :size="13" /> {{ formatSize(totalSize) }}</span>
+            <span><HardDrive :size="13" /> {{ formatBytes(totalSize) }}</span>
             <span class="dot" aria-hidden="true">·</span>
             <span><Heart :size="13" /> {{ favoriteSongs.length }} 首收藏</span>
           </p>
@@ -171,16 +175,23 @@ function onDrop(event) {
 
     <!-- 有歌时的列表 -->
     <div v-else class="song-list">
-      <SongItem
+      <SongRow
         v-for="(song, index) in songs"
         :key="song.id"
         :song="song"
         :index="index"
         :is-favorite="favoriteSongs.includes(song.id)"
-        @play="(song) => playSong(song, songs)"
-        @remove="removeSong"
-        @toggle-favorite="toggleFavorite"
-        @add-to-playlist="handleAddToPlaylist"
+        meta="size"
+        show-favorite
+        show-add-to-playlist
+        removable
+        remove-label="删除歌曲"
+        :remove-icon="Trash2"
+        @play="playSong(song, songs)"
+        @remove="removeSong(song.id)"
+        @toggle-favorite="toggleFavorite(song.id)"
+        @add-to-playlist="handleAddToPlaylist(song)"
+        @contextmenu.prevent="handleSongMenu($event, song)"
       />
     </div>
 
@@ -192,12 +203,6 @@ function onDrop(event) {
         <span>支持 MP3 / FLAC / WAV / AAC / OGG / M4A</span>
       </div>
     </div>
-
-    <AddToPlaylistDialog
-      v-if="pendingPlaylistSong"
-      :song="pendingPlaylistSong"
-      @close="pendingPlaylistSong = null"
-    />
   </section>
 </template>
 

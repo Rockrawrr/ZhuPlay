@@ -6,9 +6,10 @@ import { useMusicStore } from "@/stores/music";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useMusicActions } from "@/composables/useMusicActions";
 import { useNavigation } from "@/composables/useNavigation";
-import PageHeader from "@/components/PageHeader.vue";
-import EmptyState from "@/components/EmptyState.vue";
-import SongRow from "@/components/SongRow.vue";
+import { useSongMenu } from "@/composables/useSongMenu";
+import PageHeader from "@/components/common/PageHeader.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
+import SongRow from "@/components/common/SongRow.vue";
 
 const musicStore = useMusicStore();
 const { recentSongs } = storeToRefs(musicStore);
@@ -16,9 +17,17 @@ const { recentSongs } = storeToRefs(musicStore);
 const { playSong } = useAudioPlayer();
 const { clearRecentSongs } = useMusicActions();
 const { navigateTo } = useNavigation();
+const { openSongMenu } = useSongMenu();
 
 function playFrom(song) {
   playSong(song, recentSongs.value);
+}
+
+function handleSongMenu(event, song) {
+  openSongMenu(event, song, {
+    source: "recent",
+    list: recentSongs.value,
+  });
 }
 </script>
 
@@ -56,6 +65,7 @@ function playFrom(song) {
         :song="song"
         :index="index"
         @play="playFrom(song)"
+        @contextmenu.prevent="handleSongMenu($event, song)"
       />
     </div>
   </section>

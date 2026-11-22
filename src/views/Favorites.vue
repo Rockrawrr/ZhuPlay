@@ -6,8 +6,9 @@ import { useMusicStore } from "@/stores/music";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useMusicActions } from "@/composables/useMusicActions";
 import { useNavigation } from "@/composables/useNavigation";
-import EmptyState from "@/components/EmptyState.vue";
-import SongRow from "@/components/SongRow.vue";
+import { useSongMenu } from "@/composables/useSongMenu";
+import EmptyState from "@/components/common/EmptyState.vue";
+import SongRow from "@/components/common/SongRow.vue";
 
 const musicStore = useMusicStore();
 const { favoriteSongsList } = storeToRefs(musicStore);
@@ -15,6 +16,7 @@ const { favoriteSongsList } = storeToRefs(musicStore);
 const { playSong } = useAudioPlayer();
 const { toggleFavorite } = useMusicActions();
 const { canGoBack, goBack, navigateTo } = useNavigation();
+const { openSongMenu } = useSongMenu();
 
 // 以整个收藏列表为播放上下文
 function playAll() {
@@ -25,6 +27,13 @@ function playAll() {
 
 function playFrom(song) {
   playSong(song, favoriteSongsList.value);
+}
+
+function handleSongMenu(event, song) {
+  openSongMenu(event, song, {
+    source: "favorites",
+    list: favoriteSongsList.value,
+  });
 }
 </script>
 
@@ -82,6 +91,7 @@ function playFrom(song) {
         remove-label="取消喜欢"
         @play="playFrom(song)"
         @remove="toggleFavorite(song.id)"
+        @contextmenu.prevent="handleSongMenu($event, song)"
       />
     </div>
   </section>

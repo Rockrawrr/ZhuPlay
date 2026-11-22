@@ -106,6 +106,27 @@ export const usePlayerStore = defineStore("player", {
 
     // ===== 播放队列 =====
 
+    // 插到当前歌曲之后（右键菜单「下一首播放」）
+    // 用新数组赋值而不是 splice：队列持久化靠 watch 数组引用变化触发
+    insertNext(song) {
+      if (!song) return;
+
+      if (this.queue.length === 0) {
+        this.queue = [song];
+        this.currentIndex = -1;
+        return;
+      }
+
+      const insertAt =
+        this.currentIndex >= 0 ? this.currentIndex + 1 : this.queue.length;
+
+      this.queue = [
+        ...this.queue.slice(0, insertAt),
+        song,
+        ...this.queue.slice(insertAt),
+      ];
+    },
+
     // 设置播放队列：list 为本次播放的上下文，startIndex 为起始下标
     setQueue(list, startIndex = 0) {
       const queue = Array.isArray(list) ? [...list] : [];

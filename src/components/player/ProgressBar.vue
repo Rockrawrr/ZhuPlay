@@ -1,6 +1,7 @@
 <script setup>
 // 播放进度（纯展示）：当前时间 / 总时长 + 可拖动滑块
 import { computed } from "vue";
+import { formatTime } from "@/utils/format";
 
 const props = defineProps({
   currentTime: {
@@ -15,15 +16,8 @@ const props = defineProps({
 
 const emit = defineEmits(["seek"]);
 
-function formatTime(time) {
-  if (!Number.isFinite(time) || time < 0) return "0:00";
-  const m = Math.floor(time / 60);
-  const s = Math.floor(time % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-const currentLabel = computed(() => formatTime(props.currentTime));
-const durationLabel = computed(() => formatTime(props.duration));
+const currentLabel = computed(() => formatTime(props.currentTime, "0:00"));
+const durationLabel = computed(() => formatTime(props.duration, "0:00"));
 
 function handleInput(event) {
   emit("seek", Number(event.target.value));

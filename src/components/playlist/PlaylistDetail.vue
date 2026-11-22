@@ -10,10 +10,12 @@ import {
   Plus,
   Trash2,
 } from "lucide-vue-next";
-import EmptyState from "@/components/EmptyState.vue";
-import SongRow from "@/components/SongRow.vue";
+import EmptyState from "@/components/common/EmptyState.vue";
+import SongRow from "@/components/common/SongRow.vue";
+import { useSongMenu } from "@/composables/useSongMenu";
+import { formatDate } from "@/utils/format";
 
-defineProps({
+const props = defineProps({
   playlist: {
     type: Object,
     required: true,
@@ -35,10 +37,15 @@ const emit = defineEmits([
   "add-songs",
 ]);
 
-function formatDate(timestamp) {
-  if (!timestamp) return "";
+const { openSongMenu } = useSongMenu();
 
-  return new Date(timestamp).toLocaleDateString("zh-CN");
+// 右键歌曲行：歌单内额外提供「从歌单移除」
+function handleSongMenu(event, song) {
+  openSongMenu(event, song, {
+    source: "playlist",
+    list: props.songs,
+    onRemove: (target) => emit("remove-song", target.id),
+  });
 }
 </script>
 
@@ -108,6 +115,7 @@ function formatDate(timestamp) {
         remove-label="从歌单移除"
         @play="emit('play', song)"
         @remove="emit('remove-song', song.id)"
+        @contextmenu.prevent="handleSongMenu($event, song)"
       />
     </div>
   </section>

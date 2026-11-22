@@ -1,8 +1,9 @@
 <script setup>
-// 通用歌曲行：序号 + 封面 + 歌名 / 歌手 + 时长 + 可选移除按钮
-// 收藏 / 最近播放 / 最近导入 / 搜索结果 / 歌单详情都复用它，
-// 音乐库用的是功能更全的 SongItem（多收藏、加入歌单、删除）
-import { Music2, X } from "lucide-vue-next";
+// 通用歌曲行：序号 + 封面 + 歌名/歌手 + 元信息（时长或文件大小）+ 可选操作按钮
+// 音乐库、收藏、最近播放、最近导入、搜索、歌单详情全部复用这一个组件，
+// 差异通过 props 控制：meta 显示什么、显示哪些按钮、移除按钮用什么图标
+import { Heart, ListPlus, Music2, Trash2, X } from "lucide-vue-next";
+import { formatTime } from "@/utils/format";
 
 defineProps({
   song: {
@@ -13,7 +14,23 @@ defineProps({
     type: Number,
     default: 0,
   },
-  // 是否显示右侧移除按钮
+  // 右侧元信息：duration（默认）| size | none
+  meta: {
+    type: String,
+    default: "duration",
+  },
+  isFavorite: {
+    type: Boolean,
+    default: false,
+  },
+  showFavorite: {
+    type: Boolean,
+    default: false,
+  },
+  showAddToPlaylist: {
+    type: Boolean,
+    default: false,
+  },
   removable: {
     type: Boolean,
     default: false,
@@ -22,22 +39,20 @@ defineProps({
     type: String,
     default: "移除",
   },
-  // 没有时长信息时可以关掉这一列
-  showDuration: {
-    type: Boolean,
-    default: true,
+  // 移除按钮图标：歌单用 X，音乐库用垃圾桶
+  // 不能用 X 当默认值（函数型默认值会被 Vue 当工厂调用），模板里做兜底
+  removeIcon: {
+    type: [Object, Function],
+    default: null,
   },
 });
 
-const emit = defineEmits(["play", "remove"]);
-
-function formatTime(seconds) {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "--:--";
-
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
+const emit = defineEmits([
+  "play",
+  "remove",
+  "toggle-favorite",
+  "add-to-playlist",
+]);
 </script>
 
 <template>
@@ -54,6 +69,7 @@ function formatTime(seconds) {
           v-if="song.coverUrl"
           :src="song.coverUrl"
           :alt="song.album || song.name"
+          loading="lazy"
         />
         <Music2 v-else :size="16" />
       </span>
@@ -63,18 +79,40 @@ function formatTime(seconds) {
         <span class="song-artist">{{ song.artist || song.filename }}</span>
       </span>
 
-      <span v-if="showDuration" class="song-duration">
+      <span v-if="meta === 'duration'" class="song-meta">
         {{ formatTime(song.duration) }}
+      </span>
+      <span v-else-if="meta === 'size'" class="song-meta">
+        {{ song.size }}
       </span>
     </button>
 
     <button
+      v-if="showFavorite"
+      class="icon-button"
+      :class="{ active: isFavorite }"
+      :title="isFavorite ? '取消喜欢' : '添加喜欢'"
+      @click="emit('toggle-favorite')"
+    >
+      <Heart :size="18" :fill="isFavorite ? '#1ed760' : 'none'" />
+    </button>
+
+    <button
+      v-if="showAddToPlaylist"
+      class="icon-button"
+      title="添加到歌单"
+      @click="emit('add-to-playlist')"
+    >
+      <ListPlus :size="18" />
+    </button>
+
+    <button
       v-if="removable"
-      class="icon-action danger"
+      class="icon-button danger"
       :title="removeLabel"
       @click="emit('remove')"
     >
-      <X :size="17" />
+      <component :is="removeIcon || X" :size="17" />
     </button>
   </div>
 </template>
@@ -83,7 +121,7 @@ function formatTime(seconds) {
 .song-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 6px 8px;
   border-radius: 8px;
   transition: background 0.15s ease;
@@ -158,8 +196,8 @@ function formatTime(seconds) {
   white-space: nowrap;
 }
 
-.song-duration {
-  width: 46px;
+.song-meta {
+  width: 58px;
   flex-shrink: 0;
   color: #8a8a8a;
   font-size: 12px;
@@ -167,9 +205,40 @@ function formatTime(seconds) {
   font-variant-numeric: tabular-nums;
 }
 
+.icon-button {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.icon-button:hover {
+  color: #fff;
+}
+
+.icon-button.active {
+  color: var(--color-primary);
+}
+
+.icon-button.danger:hover {
+  color: #ff6b6b;
+}
+
 @media (max-width: 700px) {
-  .song-duration {
+  .song-meta {
     display: none;
+  }
+
+  .icon-button {
+    width: 30px;
+    height: 34px;
   }
 }
 </style>

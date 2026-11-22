@@ -9,6 +9,7 @@ import { storeToRefs } from "pinia";
 import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";
 import { getAudioService, getMusicStorage } from "@/app/services";
+import { STORAGE_KEYS } from "@/storage/keys";
 
 // 模块级单例
 let instance = null;
@@ -72,7 +73,7 @@ function createInstance() {
     musicStore.addRecentSong(song);
     musicStorage
       .saveMusicData(
-        "recentSongIds",
+        STORAGE_KEYS.recentSongs,
         musicStore.recentSongs.map((item) => item.id),
       )
       .catch((error) => console.error("最近播放记录保存失败：", error));

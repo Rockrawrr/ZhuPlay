@@ -9,8 +9,9 @@ import { useMusicStore } from "@/stores/music";
 import { usePlaylistStore } from "@/stores/playlist";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useNavigation } from "@/composables/useNavigation";
-import EmptyState from "@/components/EmptyState.vue";
-import SongRow from "@/components/SongRow.vue";
+import { useSongMenu } from "@/composables/useSongMenu";
+import EmptyState from "@/components/common/EmptyState.vue";
+import SongRow from "@/components/common/SongRow.vue";
 
 const musicStore = useMusicStore();
 const playlistStore = usePlaylistStore();
@@ -19,6 +20,7 @@ const { playlists } = storeToRefs(playlistStore);
 
 const { playSong } = useAudioPlayer();
 const { canGoBack, goBack, navigateTo } = useNavigation();
+const { openSongMenu } = useSongMenu();
 
 const keyword = ref("");
 const keywordInput = ref(null);
@@ -55,6 +57,13 @@ function openPlaylist(playlist) {
 
 function playFrom(song) {
   playSong(song, matchedSongs.value);
+}
+
+function handleSongMenu(event, song) {
+  openSongMenu(event, song, {
+    source: "search",
+    list: matchedSongs.value,
+  });
 }
 
 function clearKeyword() {
@@ -144,6 +153,7 @@ function clearKeyword() {
           :song="song"
           :index="index"
           @play="playFrom(song)"
+          @contextmenu.prevent="handleSongMenu($event, song)"
         />
       </section>
     </template>

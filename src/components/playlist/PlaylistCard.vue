@@ -2,6 +2,7 @@
 // 歌单卡片（纯展示）：封面占位、名称、歌曲数、创建日期 + 重命名/删除入口
 // 卡片整体点击 = 打开歌单，所以内部按钮都要 .stop 阻止冒泡
 import { ListMusic, Pencil, Trash2 } from "lucide-vue-next";
+import { formatDate } from "@/utils/format";
 
 defineProps({
   playlist: {
@@ -11,12 +12,6 @@ defineProps({
 });
 
 const emit = defineEmits(["open", "rename", "delete"]);
-
-function formatDate(timestamp) {
-  if (!timestamp) return "";
-
-  return new Date(timestamp).toLocaleDateString("zh-CN");
-}
 </script>
 
 <template>
