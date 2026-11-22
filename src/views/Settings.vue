@@ -4,7 +4,7 @@
 // 说明：目前只有“数据管理”类设置，播放偏好等选项等有明确需求再加
 import { computed, onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { Database, HardDrive, Info, Trash2 } from "lucide-vue-next";
+import { Database, FolderOpen, HardDrive, Info, Trash2 } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";
 import { usePlaylistStore } from "@/stores/playlist";
 import { usePlayerStore } from "@/stores/player";
@@ -14,6 +14,7 @@ import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
 import { formatBytes } from "@/utils/format";
+import { exportBackup, importBackup } from "@/services/backupService";
 import PageHeader from "@/components/common/PageHeader.vue";
 
 const musicStore = useMusicStore();
@@ -88,6 +89,67 @@ function handleClearPlaylists() {
   clearAllPlaylists();
 }
 
+// ===== 数据目录与备份 =====
+
+const isDesktop = Boolean(window.zhuplayDesktop?.isDesktop);
+const dataPath = ref("");
+
+onMounted(async () => {
+  if (!isDesktop) return;
+
+  try {
+    dataPath.value = await window.zhuplayDesktop.getDataPath();
+  } catch (error) {
+    console.error("读取数据目录失败：", error);
+  }
+});
+
+async function handleOpenDataFolder() {
+  if (!isDesktop) return;
+
+  const error = await window.zhuplayDesktop.openDataFolder();
+  if (error) toast.error("打开目录失败");
+}
+
+async function handleExportBackup() {
+  try {
+    const result = await exportBackup();
+
+    if (!result) return;
+    if (result === "download") toast.success("备份文件已下载");
+    else toast.success(`已导出到 ${result}`);
+  } catch (error) {
+    console.error("导出备份失败：", error);
+    toast.error("导出失败，请重试");
+  }
+}
+
+async function handleImportBackup() {
+  const confirmed = await confirm({
+    title: "导入备份",
+    message:
+      "会与当前数据合并：歌单、收藏、最近播放与听歌统计。不会删除现有内容；歌曲按「文件名 + 大小」匹配，没匹配上的歌会被跳过。",
+    confirmText: "导入",
+  });
+  if (!confirmed) return;
+
+  try {
+    const summary = await importBackup();
+    if (!summary) return;
+
+    const playlistText = summary.playlists.length
+      ? `，新增 ${summary.playlists.length} 个歌单`
+      : "";
+
+    toast.success(
+      `导入完成：匹配 ${summary.matched} 首，跳过 ${summary.missing} 首${playlistText}`,
+    );
+  } catch (error) {
+    console.error("导入备份失败：", error);
+    toast.error("导入失败：不是有效的备份文件");
+  }
+}
+
 // 清空全部数据：删除歌曲、收藏、歌单与播放记录，然后刷新
 async function handleClearAll() {
   const confirmed = await confirm({
@@ -140,6 +202,44 @@ async function handleClearAll() {
             <span class="stat-label">{{ item.label }}</span>
           </div>
         </div>
+      </section>
+
+      <!-- 数据与备份 -->
+      <section class="panel">
+        <h3 class="panel-title"><FolderOpen :size="17" /> 数据与备份</h3>
+
+        <p class="panel-hint">
+          歌曲与歌单保存在本机 IndexedDB 中，不会上传到任何服务器。
+        </p>
+
+        <div v-if="isDesktop" class="action-row">
+          <div class="action-text">
+            <strong>数据目录</strong>
+            <span class="data-path" :title="dataPath">{{ dataPath || "读取中…" }}</span>
+          </div>
+          <button class="ghost-button" @click="handleOpenDataFolder">打开</button>
+        </div>
+
+        <div class="action-row">
+          <div class="action-text">
+            <strong>导出备份</strong>
+            <span>歌单 / 收藏 / 最近播放 / 听歌统计，不含音频（几百 KB）</span>
+          </div>
+          <button class="ghost-button" @click="handleExportBackup">导出</button>
+        </div>
+
+        <div class="action-row">
+          <div class="action-text">
+            <strong>导入备份</strong>
+            <span>与当前数据合并，按「文件名 + 大小」匹配本地歌曲</span>
+          </div>
+          <button class="ghost-button" @click="handleImportBackup">导入</button>
+        </div>
+
+        <p v-if="isDesktop" class="panel-hint">
+          换电脑完整迁移：关闭应用 → 把上面整个数据目录复制到新电脑的相同路径 →
+          打开即为完整环境（含音频文件）。
+        </p>
       </section>
 
       <!-- 数据管理 -->
@@ -221,8 +321,7 @@ async function handleClearAll() {
   background: #181818;
 }
 
-.panel-title {
-  display: flex;
+.panel-title {  display: flex;
   align-items: center;
   gap: 8px;
   margin: 0 0 14px;
@@ -235,6 +334,16 @@ async function handleClearAll() {
   color: #999;
   font-size: 12px;
   line-height: 1.7;
+}
+
+/* 数据目录路径：过长时省略，悬停看完整路径 */
+.data-path {
+  max-width: 460px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #7f9c8c;
+  font-size: 12px;
 }
 
 /* 存储条 */

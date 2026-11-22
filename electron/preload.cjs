@@ -36,4 +36,16 @@ contextBridge.exposeInMainWorld("zhuplayDesktop", {
   getOpenAtLogin: () => ipcRenderer.invoke("app:get-open-at-login"),
   setOpenAtLogin: (enabled) =>
     ipcRenderer.invoke("app:set-open-at-login", Boolean(enabled)),
+
+  // ===== 数据迁移 =====
+
+  // 数据目录（IndexedDB、窗口状态都在这里）
+  getDataPath: () => ipcRenderer.invoke("app:get-data-path"),
+  // 在资源管理器里打开数据目录
+  openDataFolder: () => ipcRenderer.invoke("app:open-data-folder"),
+
+  // 备份导出：弹出保存对话框，返回实际写入的路径（取消返回空串）
+  saveBackup: (json) => ipcRenderer.invoke("backup:save", json),
+  // 备份导入：弹出打开对话框，返回文件内容（取消返回 null）
+  openBackup: () => ipcRenderer.invoke("backup:open"),
 });

@@ -150,6 +150,13 @@ Electron 相关的设计：
 | 自动更新 | `electron-updater` + GitHub Releases；打包版启动时检查，下载完成后询问是否重启安装 |
 | 应用图标 | `build/icon.ico`（16~256 多尺寸），由 `build/make_icon.py` 生成 |
 
+## 数据存储与迁移
+
+- 所有数据都在本机 IndexedDB（`ZhuPlayDB`）：`songs`（含音频 File 与封面 Blob）、`musicData`（收藏 / 最近播放 / 队列 / 音量 / 听歌统计）、`playlists`
+- 桌面端数据目录：`%APPDATA%\ZhuPlay`（设置页可直接打开）
+- **换电脑完整迁移**：关闭应用 → 复制整个数据目录到新电脑同一路径 → 打开即为完整环境（含音频）
+- **备份导出/导入**（设置页）：只含歌单、收藏、最近播放、听歌统计，几百 KB；导入按「文件名 + 大小」匹配本地歌曲并合并
+
 ## 歌词
 
 - 导入时解析内嵌歌词（ID3 USLT / SYLT、Vorbis LYRICS、MP4 ©lyr 等）

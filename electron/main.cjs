@@ -399,6 +399,55 @@ if (!app.requestSingleInstanceLock()) {
       return app.getLoginItemSettings().openAtLogin;
     });
 
+    // 数据目录：IndexedDB 等都在这里，换电脑时复制整个目录即可
+    ipcMain.handle("app:get-data-path", () => app.getPath("userData"));
+
+    ipcMain.handle("app:open-data-folder", async () => {
+      const dataPath = app.getPath("userData");
+      const error = await shell.openPath(dataPath);
+      return error || "";
+    });
+
+    // 备份导出：让用户选保存位置，再写 JSON
+    ipcMain.handle("backup:save", async (_event, json) => {
+      if (typeof json !== "string") return "";
+
+      const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+        title: "导出 ZhuPlay 备份",
+        defaultPath: path.join(
+          app.getPath("documents"),
+          `zhuplay-backup-${new Date().toISOString().slice(0, 10)}.json`,
+        ),
+        filters: [{ name: "ZhuPlay 备份", extensions: ["json"] }],
+      });
+
+      if (canceled || !filePath) return "";
+
+      await fs.promises.writeFile(filePath, json, "utf8");
+      return filePath;
+    });
+
+    // 备份导入：让用户选文件，读回文本
+    ipcMain.handle("backup:open", async () => {
+      const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+        title: "选择 ZhuPlay 备份文件",
+        properties: ["openFile"],
+        filters: [{ name: "ZhuPlay 备份", extensions: ["json"] }],
+      });
+
+      if (canceled || filePaths.length === 0) return null;
+
+      try {
+        const stat = await fs.promises.stat(filePaths[0]);
+        // 只接受 20MB 以内的备份文件（纯元数据，正常只有几百 KB）
+        if (stat.size > 20 * 1024 * 1024) return null;
+
+        return await fs.promises.readFile(filePaths[0], "utf8");
+      } catch {
+        return null;
+      }
+    });
+
     // 桌面端不需要默认菜单（保留快捷键用 autoHideMenuBar）
     Menu.setApplicationMenu(null);
     createWindow();
