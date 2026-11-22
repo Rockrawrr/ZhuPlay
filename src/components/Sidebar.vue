@@ -15,13 +15,20 @@ import {
 } from "lucide-vue-next";
 import { useNavigation } from "@/composables/useNavigation";
 import { usePlaylistActions } from "@/composables/usePlaylistActions";
+import { useConfirm } from "@/composables/useConfirm";
 
 const { currentPage, navigateTo } = useNavigation();
 const { createPlaylist } = usePlaylistActions();
+const { prompt } = useConfirm();
 
 // 侧边栏「+」：直接建歌单并跳到该歌单详情
 async function handleCreatePlaylist() {
-  const name = window.prompt("新歌单名称", "新建歌单");
+  const name = await prompt({
+    title: "新建歌单",
+    value: "新建歌单",
+    placeholder: "歌单名称",
+    confirmText: "创建",
+  });
   if (name === null) return;
 
   const playlist = await createPlaylist(name);
@@ -128,7 +135,9 @@ async function handleCreatePlaylist() {
   min-width: 240px;
   height: 100%;
   padding: 24px 16px;
-  background: #000;
+  /* 原来是纯黑 #000，和 #121212 的内容区并排像两块拼板；
+     改成与内容区同色，靠留白和内边距区分层级 */
+  background: #121212;
   display: flex;
   flex-direction: column;
   gap: 32px;

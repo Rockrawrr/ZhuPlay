@@ -281,7 +281,11 @@ function handleQuickCardClick(id) {
   height: 100%;
   overflow-y: auto;
   padding: 0 32px 40px;
-  background: linear-gradient(180deg, #263b32 0, #181818 330px);
+  /* 绿色微光放在右上角而不是左上角：左上角紧邻纯黑侧边栏，
+     光晕贴边会让"侧栏 / 内容区"的接缝显得很重 */
+  background:
+    radial-gradient(760px 300px at 78% -14%, #1b3529 0%, transparent 62%),
+    #121212;
 }
 
 .top-bar {
@@ -360,11 +364,12 @@ function handleQuickCardClick(id) {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 48px 0 12px;
+  padding: 0 48px 0 10px;
 
-  background: #ffffff1c;
-  border: 1px solid transparent;
-  border-radius: 7px;
+  /* 与「最近导入」列表项同一套表面语言：实心中性灰 + 悬停浅一档 */
+  background: #1c1c1c;
+  border: none;
+  border-radius: 8px;
 
   color: #fff;
   font-size: 14px;
@@ -374,11 +379,7 @@ function handleQuickCardClick(id) {
   overflow: hidden;
   cursor: pointer;
 
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: background 0.15s ease;
 }
 
 .quick-title {
@@ -394,14 +395,12 @@ function handleQuickCardClick(id) {
 }
 
 .quick-card:hover {
-  background: #ffffff30;
-  border-color: #1ed76080;
-  transform: translateY(-3px);
-  box-shadow: 0 5px 15px #0003;
+  /* 与「最近导入」列表项的悬停底色一致 */
+  background: #2a2a2a;
 }
 
 .quick-card:active {
-  transform: translateY(-1px) scale(0.99);
+  background: #303030;
 }
 
 /* 快捷卡片上的播放按钮：悬停时出现，移动端常显 */
@@ -434,13 +433,15 @@ function handleQuickCardClick(id) {
 }
 
 .quick-cover {
-  height: 76px;
-  width: 76px;
-  min-width: 76px;
+  height: 56px;
+  width: 56px;
+  min-width: 56px;
   display: grid;
   place-items: center;
-  color: #fff;
-  background: linear-gradient(135deg, #27634d, #172c25);
+  border-radius: 6px;
+  /* 原来是整块绿色渐变，和卡片灰底割裂；改成低调的灰底 + 绿色图标 */
+  background: #ffffff12;
+  color: var(--color-primary);
   position: relative;
 }
 
@@ -704,7 +705,8 @@ function handleQuickCardClick(id) {
   .quick-cover {
     width: 40px;
     min-width: 40px;
-    height: 56px;
+    height: 40px;
+    border-radius: 5px;
   }
 
   .quick-title {
@@ -793,20 +795,14 @@ function handleQuickCardClick(id) {
 
 /* 手机和平板触屏设备交互 */
 @media (hover: none), (pointer: coarse) {
-  /* 不保留鼠标悬停效果 */
+  /* 触屏没有悬停，保持基础底色 */
   .quick-card:hover {
-    background: #ffffff1c;
-    border-color: transparent;
-    transform: none;
-    box-shadow: none;
+    background: #1c1c1c;
   }
 
   /* 手指按下时的短暂反馈 */
   .quick-card:active {
-    background: #ffffff30;
-    border-color: transparent;
-    transform: scale(0.98);
-    box-shadow: none;
+    background: #2a2a2a;
   }
 }
 </style>
