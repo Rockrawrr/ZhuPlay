@@ -4,10 +4,12 @@ import { useMusicStore } from "@/stores/music";
 import { getMusicStorage } from "@/app/services";
 import { releaseSong } from "@/services/musicService";
 import { destroyAudioPlayer } from "@/composables/useAudioPlayer";
+import { useQueuePersistence } from "@/app/useQueuePersistence";
 
 export function useAppBootstrap() {
   const musicStore = useMusicStore();
   const musicStorage = getMusicStorage();
+  const { restoreQueue } = useQueuePersistence();
 
   async function initializeMusic() {
     try {
@@ -30,7 +32,11 @@ export function useAppBootstrap() {
     }
   }
 
-  onMounted(initializeMusic);
+  onMounted(async () => {
+    await initializeMusic();
+    // 曲库恢复后再还原队列：队列里的歌曲要能在 songs 里按 id 找到
+    await restoreQueue();
+  });
 
   onUnmounted(() => {
     musicStore.songs.forEach(releaseSong);
