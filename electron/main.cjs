@@ -11,12 +11,15 @@
 const {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   Menu,
+  nativeImage,
   net,
   protocol,
   screen,
   shell,
+  Tray,
 } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -107,6 +110,103 @@ function registerAppProtocol() {
 }
 
 let mainWindow = null;
+let tray = null;
+let isQuitting = false;
+
+// ===== 托盘 =====
+
+function createTray() {
+  const iconPath = path.join(__dirname, "..", "build", "icon.ico");
+  const image = nativeImage.createFromPath(iconPath);
+
+  tray = new Tray(image.resize({ width: 16, height: 16 }));
+  tray.setToolTip("ZhuPlay");
+
+  const showWindow = () => {
+    if (!mainWindow) return createWindow();
+    mainWindow.show();
+    mainWindow.focus();
+  };
+
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: "显示 ZhuPlay", click: showWindow },
+      { label: "隐藏到托盘", click: () => mainWindow?.hide() },
+      { type: "separator" },
+      {
+        label: "开机自启",
+        type: "checkbox",
+        checked: app.getLoginItemSettings().openAtLogin,
+        click: (item) => {
+          app.setLoginItemSettings({
+            openAtLogin: item.checked,
+            path: process.execPath,
+          });
+        },
+      },
+      { type: "separator" },
+      {
+        label: "退出",
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        },
+      },
+    ]),
+  );
+
+  // 左键点托盘图标：在显示/隐藏之间切换
+  tray.on("click", () => {
+    if (!mainWindow) return createWindow();
+    if (mainWindow.isVisible()) mainWindow.hide();
+    else {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
+// ===== 自动更新 =====
+
+function setupAutoUpdate() {
+  if (!app.isPackaged) return;
+
+  let autoUpdater;
+
+  try {
+    // 打包后才存在该依赖的使用场景，避免开发期每次启动都检查
+    ({ autoUpdater } = require("electron-updater"));
+  } catch (error) {
+    console.warn("自动更新模块不可用：", error?.message);
+    return;
+  }
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("error", (error) => {
+    console.warn("检查更新失败（不影响使用）：", error?.message);
+  });
+
+  autoUpdater.on("update-downloaded", async (info) => {
+    const { response } = await dialog.showMessageBox({
+      type: "info",
+      title: "发现新版本",
+      message: `ZhuPlay ${info.version} 已下载完成`,
+      detail: "重启应用即可完成更新，是否现在重启？",
+      buttons: ["立即重启", "稍后"],
+      defaultId: 0,
+      cancelId: 1,
+    });
+
+    if (response === 0) {
+      isQuitting = true;
+      autoUpdater.quitAndInstall();
+    }
+  });
+
+  autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+}
 
 // ===== 窗口位置与大小记忆 =====
 
@@ -185,9 +285,16 @@ function createWindow() {
 
   mainWindow.on("resize", scheduleSave);
   mainWindow.on("move", scheduleSave);
-  mainWindow.on("close", () => {
+
+  // 点关闭按钮时收进托盘，而不是结束进程（托盘菜单里有「退出」）
+  mainWindow.on("close", (event) => {
     clearTimeout(saveTimer);
     saveWindowState(mainWindow);
+
+    if (isQuitting) return;
+
+    event.preventDefault();
+    mainWindow.hide();
   });
 
   // 不在应用内打开新窗口（外链交给系统浏览器）
@@ -237,9 +344,42 @@ if (!app.requestSingleInstanceLock()) {
       return true;
     });
 
+    // 读取同目录下的同名 .lrc 歌词
+    ipcMain.handle("fs:read-lyrics", async (_event, filePath) => {
+      if (typeof filePath !== "string" || filePath.length === 0) return "";
+
+      const lrcPath = filePath.replace(/\.[^./\\]+$/, ".lrc");
+
+      try {
+        const stat = await fs.promises.stat(lrcPath);
+        if (!stat.isFile() || stat.size > 512 * 1024) return "";
+        return await fs.promises.readFile(lrcPath, "utf8");
+      } catch {
+        return "";
+      }
+    });
+
+    // 开机自启
+    ipcMain.handle("app:get-open-at-login", () =>
+      app.getLoginItemSettings().openAtLogin,
+    );
+    ipcMain.handle("app:set-open-at-login", (_event, enabled) => {
+      app.setLoginItemSettings({
+        openAtLogin: Boolean(enabled),
+        path: process.execPath,
+      });
+      return app.getLoginItemSettings().openAtLogin;
+    });
+
     // 桌面端不需要默认菜单（保留快捷键用 autoHideMenuBar）
     Menu.setApplicationMenu(null);
     createWindow();
+    createTray();
+    setupAutoUpdate();
+
+    app.on("before-quit", () => {
+      isQuitting = true;
+    });
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -247,6 +387,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") app.quit();
+    // 有托盘时窗口隐藏不退出，只有主动退出才结束进程
+    if (isQuitting && process.platform !== "darwin") app.quit();
   });
 }

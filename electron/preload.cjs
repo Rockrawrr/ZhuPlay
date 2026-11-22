@@ -28,4 +28,12 @@ contextBridge.exposeInMainWorld("zhuplayDesktop", {
   // 在资源管理器里定位文件（右键菜单「在文件夹中显示」）
   showItemInFolder: (filePath) =>
     ipcRenderer.invoke("shell:show-item-in-folder", filePath),
+
+  // 读取同目录下的同名 .lrc 歌词，没有则返回空串
+  readLyricsFile: (filePath) => ipcRenderer.invoke("fs:read-lyrics", filePath),
+
+  // 开机自启开关
+  getOpenAtLogin: () => ipcRenderer.invoke("app:get-open-at-login"),
+  setOpenAtLogin: (enabled) =>
+    ipcRenderer.invoke("app:set-open-at-login", Boolean(enabled)),
 });

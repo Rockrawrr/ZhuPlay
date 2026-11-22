@@ -55,6 +55,17 @@ export function useMusicActions() {
         }
 
         song.filePath = resolveFilePath(file);
+
+        // 桌面端：没有内嵌歌词时，尝试读同目录下的同名 .lrc
+        if (!song.lyrics && song.filePath) {
+          try {
+            const lrc = await window.zhuplayDesktop.readLyricsFile(song.filePath);
+            if (lrc) song.lyrics = lrc;
+          } catch {
+            // 没找到歌词文件属于正常情况，静默忽略
+          }
+        }
+
         return song;
       }),
     );

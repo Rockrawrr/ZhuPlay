@@ -47,7 +47,8 @@ zhuplay
    │  │  ├─ PlaybackControls.vue # 随机、上一首、播放、下一首、循环
    │  │  ├─ ProgressBar.vue    # 播放进度
    │  │  ├─ VolumeControl.vue  # 音量与静音
-   │  │  └─ QueuePanel.vue     # 播放队列面板
+   │  │  ├─ QueuePanel.vue     # 播放队列面板
+   │  │  └─ LyricsPanel.vue    # 歌词面板（逐句高亮 + 点击跳转）
    │  └─ playlist              # 歌单 UI
    │     ├─ PlaylistCard.vue   # 歌单卡片
    │     ├─ PlaylistDetail.vue # 歌单详情（头部 + 歌曲列表）
@@ -61,6 +62,7 @@ zhuplay
    │  ├─ useOverlays.js        # 右键菜单 / 添加到歌单 / 歌曲信息 的开关状态
    │  ├─ useSongMenu.js        # 歌曲右键菜单项定义
    │  ├─ useNavigation.js      # 导航门面（vue-router 封装）
+   │  ├─ useMediaSession.js    # 系统媒体控制（媒体键 / 媒体弹窗）
    │  └─ useVolume.js          # 音量控制与持久化
    ├─ layouts
    │  └─ AppLayout.vue         # 应用骨架
@@ -85,7 +87,8 @@ zhuplay
    │  ├─ player.js             # 播放状态 / 队列 / 音量
    │  └─ playlist.js           # 歌单列表 / 当前歌单
    ├─ utils
-   │  └─ format.js             # 时间 / 大小 / 日期格式化
+   │  ├─ format.js             # 时间 / 大小 / 日期格式化
+   │  └─ lyrics.js             # LRC 解析与当前行定位
    └─ views
       ├─ Home.vue
       ├─ Library.vue
@@ -142,7 +145,36 @@ Electron 相关的设计：
 | 窗口记忆 | 关闭时把位置与大小写入 `%APPDATA%/ZhuPlay/window-state.json`，下次启动还原；显示器拔掉导致越界时只保留尺寸 |
 | 系统媒体控制 | 通过 `navigator.mediaSession` 接入媒体键 / Windows 媒体弹窗，显示封面与歌名，支持播放、暂停、上/下一首 |
 | 在文件夹中显示 | 右键菜单项，仅桌面端且歌曲有真实路径时出现（Web 端 `<input type=file>` 拿不到路径；桌面端在导入时用 `webUtils.getPathForFile` 记录） |
-| 应用图标 | `build/icon.ico`（16~256 多尺寸），由 `make_icon.py` 生成 |
+| 托盘 | 关闭窗口收进托盘而不是退出；托盘菜单可显示/隐藏、开机自启、退出 |
+| 自动更新 | `electron-updater` + GitHub Releases；打包版启动时检查，下载完成后询问是否重启安装 |
+| 应用图标 | `build/icon.ico`（16~256 多尺寸），由 `build/make_icon.py` 生成 |
+
+## 歌词
+
+- 导入时解析内嵌歌词（ID3 USLT / SYLT、Vorbis LYRICS、MP4 ©lyr 等）
+- 桌面端如果没有内嵌歌词，会尝试读取音频同目录下的同名 `.lrc`
+- 播放条右侧「歌词」按钮打开面板，逐句滚动高亮，点击某句可跳转
+- 解析逻辑在 `src/utils/lyrics.js`：带时间轴的按 LRC 处理，纯文本按静态歌词展示
+
+## 发布与签名
+
+```powershell
+# 打安装包（不发布）
+npm run electron:build
+
+# 打安装包并上传到 GitHub Releases（自动更新用）
+$env:GH_TOKEN="<github token>"
+npx electron-builder --publish always
+```
+
+未签名时 Windows SmartScreen 会提示「未知发布者」。要消除提示需要代码签名证书，设置环境变量后 electron-builder 会自动签名：
+
+```powershell
+$env:CSC_LINK="C:\path\to\cert.pfx"     # 或 base64
+$env:CSC_KEY_PASSWORD="证书密码"
+npm run electron:build
+```
+
 
 首次安装依赖如果 Electron 二进制下载失败，可指定镜像：
 

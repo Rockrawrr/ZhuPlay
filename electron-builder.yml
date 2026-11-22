@@ -15,6 +15,12 @@ files:
 asar: true
 compression: normal
 
+# 自动更新：GitHub Releases（发布时用 electron-builder --publish always）
+publish:
+  provider: github
+  owner: Rockrawrr
+  repo: ZhuPlay
+
 # 项目没有原生依赖，跳过 rebuild 更快
 npmRebuild: false
 

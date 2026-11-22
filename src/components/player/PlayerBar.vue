@@ -3,7 +3,7 @@
 // 四个子组件（信息 / 控制 / 进度 / 音量）都是纯展示，通过 props 与 emit 通信
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { ListMusic } from "lucide-vue-next";
+import { ListMusic, ScrollText } from "lucide-vue-next";
 import { usePlayerStore } from "@/stores/player";
 import { useMusicStore } from "@/stores/music";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
@@ -14,6 +14,7 @@ import PlaybackControls from "@/components/player/PlaybackControls.vue";
 import ProgressBar from "@/components/player/ProgressBar.vue";
 import VolumeControl from "@/components/player/VolumeControl.vue";
 import QueuePanel from "@/components/player/QueuePanel.vue";
+import LyricsPanel from "@/components/player/LyricsPanel.vue";
 
 const playerStore = usePlayerStore();
 const musicStore = useMusicStore();
@@ -34,8 +35,9 @@ const { togglePlay, seek, playPrevious, playNext } = useAudioPlayer();
 const { toggleFavorite } = useMusicActions();
 const { setVolume, toggleMute } = useVolume();
 
-// 播放队列面板
+// 播放队列面板 / 歌词面板
 const showQueue = ref(false);
+const showLyrics = ref(false);
 
 const isCurrentFavorite = computed(
   () =>
@@ -87,6 +89,15 @@ function handleCycleRepeat() {
 
     <div class="player-right">
       <button
+        class="player-icon"
+        :class="{ active: showLyrics }"
+        title="歌词"
+        @click="showLyrics = !showLyrics"
+      >
+        <ScrollText :size="19" />
+      </button>
+
+      <button
         class="player-icon queue-button"
         :class="{ active: showQueue }"
         title="播放队列"
@@ -104,6 +115,14 @@ function handleCycleRepeat() {
     </div>
 
     <QueuePanel v-if="showQueue" @close="showQueue = false" />
+
+    <LyricsPanel
+      v-if="showLyrics"
+      :song="currentSong"
+      :current-time="currentTime"
+      @seek="seek"
+      @close="showLyrics = false"
+    />
   </footer>
 </template>
 

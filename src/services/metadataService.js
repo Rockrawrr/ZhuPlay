@@ -31,6 +31,28 @@ export async function parseMusicMetadata(file) {
     })
   }
 
+  // 提取内嵌歌词：优先无时间轴文本，其次把 SYLT 的同步歌词拼回 LRC
+  let lyrics = ''
+
+  const lyricsTag = common.lyrics?.[0]
+
+  if (lyricsTag) {
+    if (lyricsTag.text) {
+      lyrics = lyricsTag.text
+    } else if (Array.isArray(lyricsTag.syncText) && lyricsTag.syncText.length > 0) {
+      lyrics = lyricsTag.syncText
+        .map((item) => {
+          const ms = Number(item.timestamp) || 0
+          const total = Math.floor(ms / 1000)
+          const m = String(Math.floor(total / 60)).padStart(2, '0')
+          const s = String(total % 60).padStart(2, '0')
+          const cs = String(Math.floor((ms % 1000) / 10)).padStart(2, '0')
+          return `[${m}:${s}.${cs}]${item.text || ''}`
+        })
+        .join('\n')
+    }
+  }
+
   // 返回标准化元数据
   return {
     name: common.title || '',
@@ -42,7 +64,7 @@ export async function parseMusicMetadata(file) {
     trackNumber: common.track?.no ?? null,
     discNumber: common.disk?.no ?? null,
     duration: format.duration ?? 0,
-    lyrics: '',
+    lyrics,
     cover,
 
     bitrate: format.bitrate ?? null,
