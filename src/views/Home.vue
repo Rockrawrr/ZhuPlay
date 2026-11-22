@@ -102,6 +102,14 @@ function handleQuickCardClick(id) {
           <span class="quick-title">
             {{ album.title }}
           </span>
+
+          <button
+            class="quick-play"
+            :title="`播放${album.title}`"
+            @click.stop="handleQuickPlay(album.id)"
+          >
+            <Play :size="16" fill="currentColor" />
+          </button>
         </div>
       </div>
     </section>
@@ -319,7 +327,7 @@ function handleQuickCardClick(id) {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 12px;
+  padding: 0 48px 0 12px;
 
   background: #ffffff1c;
   border: 1px solid transparent;
@@ -361,6 +369,35 @@ function handleQuickCardClick(id) {
 
 .quick-card:active {
   transform: translateY(-1px) scale(0.99);
+}
+
+/* 快捷卡片上的播放按钮：悬停时出现，移动端常显 */
+.quick-play {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  margin-top: -16px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: #1ed760;
+  color: #000;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    background 0.2s ease;
+}
+
+.quick-card:hover .quick-play {
+  opacity: 1;
+}
+
+.quick-play:hover {
+  background: #3be477;
 }
 
 .quick-cover {
@@ -634,7 +671,7 @@ function handleQuickCardClick(id) {
   .quick-card {
     height: 64px;
     gap: 8px;
-    padding-right: 10px;
+    padding-right: 44px;
     font-size: 12px;
   }
 
@@ -661,6 +698,7 @@ function handleQuickCardClick(id) {
     width: 30px;
     height: 30px;
     right: 6px;
+    margin-top: -15px;
   }
 
   /* 手机端首页标题优化 */

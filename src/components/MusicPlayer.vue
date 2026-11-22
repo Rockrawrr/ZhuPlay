@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from "vue";
 import { storeToRefs } from "pinia";
 import {
   Play,
@@ -16,16 +17,20 @@ import { usePlayerStore } from "@/stores/player";
 import { useMusicStore } from "@/stores/music";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useMusicActions } from "@/composables/useMusicActions";
+import QueuePanel from "@/components/player/QueuePanel.vue";
 
 const playerStore = usePlayerStore();
 const musicStore = useMusicStore();
 
-const { currentSong, isPlaying, isShuffle, repeatMode, currentTime, duration } =
+const { currentSong, isPlaying, isShuffle, repeatMode, currentTime, duration, queue } =
   storeToRefs(playerStore);
 const { favoriteSongs } = storeToRefs(musicStore);
 
 const { togglePlay, seek, playPrevious, playNext } = useAudioPlayer();
 const { toggleFavorite } = useMusicActions();
+
+// 播放队列面板
+const showQueue = ref(false);
 
 function toggleRepeat() {
   let nextMode;
@@ -163,10 +168,22 @@ function formatTime(time) {
     </div>
 
     <div class="player-right">
-      <ListMusic :size="19" />
+      <button
+        class="player-icon queue-button"
+        :class="{ active: showQueue }"
+        title="播放队列"
+        @click="showQueue = !showQueue"
+      >
+        <ListMusic :size="19" />
+        <span v-if="queue.length > 0" class="queue-badge">
+          {{ queue.length }}
+        </span>
+      </button>
       <Volume2 :size="19" />
       <div class="volume-track"><div class="volume-fill"></div></div>
     </div>
+
+    <QueuePanel v-if="showQueue" @close="showQueue = false" />
   </footer>
 </template>
 
@@ -371,6 +388,28 @@ function formatTime(time) {
   justify-content: flex-end;
   align-items: center;
   gap: 15px;
+}
+
+/* 播放队列按钮 */
+.queue-button {
+  position: relative;
+}
+
+.queue-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: #1ed760;
+  color: #000;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .volume-track {
