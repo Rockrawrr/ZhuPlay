@@ -16,6 +16,7 @@ import { useConfirm } from "@/composables/useConfirm";
 import { STORAGE_KEYS } from "@/storage/keys";
 import { releaseAllAudioUrls, releaseSongAudioUrl } from "@/services/assetUrls";
 import { persistSafely } from "@/utils/persist";
+import { filterDuplicateFiles } from "@/utils/dedupe";
 
 export function useMusicActions() {
   const musicStore = useMusicStore();
@@ -43,8 +44,24 @@ export function useMusicActions() {
   }
 
   async function importSongs(files) {
+    // 先把已经在库里的 / 同批次重复选中的文件筛掉，再解析元数据（省掉无效解析）
+    const { fresh, duplicates } = filterDuplicateFiles(
+      files,
+      musicStore.songs,
+      resolveFilePath,
+    );
+
+    if (fresh.length === 0) {
+      toast.info(
+        duplicates.length > 0
+          ? `这 ${duplicates.length} 首歌曲已经在音乐库里了`
+          : "没有可导入的音频文件",
+      );
+      return;
+    }
+
     const newSongs = await Promise.all(
-      Array.from(files).map(async (file) => {
+      fresh.map(async (file) => {
         let song;
 
         try {
@@ -84,10 +101,12 @@ export function useMusicActions() {
 
     musicStore.addSongs(newSongs);
 
+    const skipped = duplicates.length > 0 ? `，跳过 ${duplicates.length} 首重复` : "";
+
     if (failed > 0) {
       toast.error(`${failed} 首歌曲保存失败，刷新后可能丢失`);
     } else if (newSongs.length > 0) {
-      toast.success(`已导入 ${newSongs.length} 首歌曲`);
+      toast.success(`已导入 ${newSongs.length} 首歌曲${skipped}`);
     }
   }
 

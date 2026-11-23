@@ -159,12 +159,20 @@ Chromium 把大 Blob 单独放 `.indexeddb.blob`，记录放 `.leveldb`。
 
 ```
 选择文件 / 拖拽
+   → filterDuplicateFiles()           先按「文件名+大小」（桌面端再加绝对路径）挡掉重复
    → parseMusicMetadata(file)          music-metadata 读标签、封面、内嵌歌词
    → createSong(file, metadata)        生成标准对象（不创建 blob 地址）
    → 桌面端补 filePath + 同名 .lrc
    → musicStorage.saveSong()           写入 songs
    → musicStore.addSongs()
 ```
+
+去重规则（`utils/dedupe.js`，与备份导入共用）：
+
+- 文件名转小写 + 文件大小相同即视为同一首
+- 桌面端额外用文件绝对路径判断（文件改名也能识别）
+- 同一次选择里重复选中同一个文件也只导入一次
+- 命中重复时不解析元数据，直接跳过并提示「已在音乐库里」
 
 ### 6.2 播放
 

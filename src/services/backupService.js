@@ -13,6 +13,7 @@ import { useMusicStore } from "@/stores/music";
 import { usePlaylistStore } from "@/stores/playlist";
 import { getMusicStorage, getPlaylistStorage } from "@/app/services";
 import { STORAGE_KEYS } from "@/storage/keys";
+import { songFingerprint } from "@/utils/dedupe";
 
 const SONG_FIELDS = [
   "id",
@@ -40,10 +41,8 @@ function appVersion() {
   return typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "unknown";
 }
 
-// 跨设备匹配歌曲的依据：文件名 + 文件大小（音频不上传，只能靠这个）
-function fingerprint(song) {
-  return `${String(song.filename || "").toLowerCase()}|${song.fileSize ?? 0}`;
-}
+// 跨设备匹配歌曲的依据：文件名 + 文件大小（与导入去重共用同一套规则）
+const fingerprint = songFingerprint;
 
 // 生成备份快照
 export async function buildSnapshot() {
