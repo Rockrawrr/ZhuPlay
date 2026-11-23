@@ -1,6 +1,20 @@
 # ZhuPlay
 
-> 本地音乐播放器（Web + Electron 桌面端）
+<p align="center">
+  <a href="https://github.com/Rockrawrr/ZhuPlay/releases/tag/v1.2.5">
+    <img src="https://img.shields.io/badge/Download-ZhuPlay%20v1.2.5-blue?style=for-the-badge&logo=windows" alt="Download ZhuPlay">
+  </a>
+</p>
+
+<p align="center">
+  <strong>本地音乐播放器（Web + Electron 桌面端）</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Rockrawrr/ZhuPlay/releases/tag/v1.2.5">下载 Windows 桌面版 v1.2.5</a>
+  ·
+  <a href="docs/TECHNICAL.md">技术文档</a>
+</p>
 
 完整架构与实现说明见 **[docs/TECHNICAL.md](docs/TECHNICAL.md)**。
 
@@ -8,7 +22,7 @@
 
 ## 目录结构
 
-```
+```text
 zhuplay
 ├─ index.html
 ├─ jsconfig.json
@@ -32,28 +46,28 @@ zhuplay
    │     └─ ui.css             # 通用 UI 原语（页面壳、按钮、空状态）
    ├─ components
    │  ├─ Sidebar.vue           # 侧边栏导航
-   │  ├─ common                # 跨页面通用 UI
+   │  ├─ common                 # 跨页面通用 UI
    │  │  ├─ EmptyState.vue     # 统一空状态
    │  │  ├─ PageHeader.vue     # 统一页面头部
    │  │  └─ SongRow.vue        # 统一歌曲行（元信息与按钮由 props 控制）
-   │  ├─ overlays              # 全局浮层
+   │  ├─ overlays               # 全局浮层
    │  │  ├─ AddToPlaylistDialog.vue # 添加到歌单
    │  │  ├─ AppDialog.vue      # 确认 / 输入对话框
    │  │  ├─ AppToast.vue       # 轻提示
    │  │  ├─ ContextMenu.vue    # 右键菜单
    │  │  └─ SongInfoDialog.vue # 歌曲信息
-   │  ├─ home                  # 首页区块
+   │  ├─ home                   # 首页区块
    │  │  ├─ HomeAlbumGrid.vue  # 为你推荐网格
    │  │  └─ HomeRecentList.vue # 最近导入 / 最近播放列表
-   │  ├─ player                # 播放器 UI
+   │  ├─ player                 # 播放器 UI
    │  │  ├─ PlayerBar.vue      # 播放条容器（持有状态）
-   │  │  ├─ TrackInfo.vue      # 封面 / 歌名 / 喜欢
+   │  │  ├─ TrackInfo.vue       # 封面 / 歌名 / 喜欢
    │  │  ├─ PlaybackControls.vue # 随机、上一首、播放、下一首、循环
    │  │  ├─ ProgressBar.vue    # 播放进度
    │  │  ├─ VolumeControl.vue  # 音量与静音
    │  │  ├─ QueuePanel.vue     # 播放队列面板
    │  │  └─ LyricsScreen.vue   # 全屏歌词页（模糊封面背景 + 逐句高亮，点击左下角歌曲进入）
-   │  └─ playlist              # 歌单 UI
+   │  └─ playlist               # 歌单 UI
    │     ├─ PlaylistCard.vue   # 歌单卡片
    │     ├─ PlaylistDetail.vue # 歌单详情（头部 + 歌曲列表）
    │     └─ AddSongsPanel.vue  # 添加歌曲弹层
@@ -116,11 +130,11 @@ zhuplay
 
 ```bash
 npm install
-npm run dev     # 开发
-npm run build   # 构建
-npm run preview # 预览构建产物
-npm run lint    # ESLint 静态检查
-npm test        # Vitest 单元测试
+npm run dev      # 开发
+npm run build    # 构建
+npm run preview  # 预览构建产物
+npm run lint     # ESLint 静态检查
+npm test         # Vitest 单元测试
 ```
 
 ## 桌面端（Electron）
@@ -148,20 +162,20 @@ Electron 相关的设计：
 
 桌面端专属能力：
 
-| 能力 | 说明 |
-| --- | --- |
-| 窗口记忆 | 关闭时把位置与大小写入 `%APPDATA%/ZhuPlay/window-state.json`，下次启动还原；显示器拔掉导致越界时只保留尺寸 |
-| 系统媒体控制 | 通过 `navigator.mediaSession` 接入媒体键 / Windows 媒体弹窗，显示封面与歌名，支持播放、暂停、上/下一首 |
+| 能力           | 说明                                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 窗口记忆       | 关闭时把位置与大小写入 `%APPDATA%/ZhuPlay/window-state.json`，下次启动还原；显示器拔掉导致越界时只保留尺寸                           |
+| 系统媒体控制   | 通过 `navigator.mediaSession` 接入媒体键 / Windows 媒体弹窗，显示封面与歌名，支持播放、暂停、上/下一首                               |
 | 在文件夹中显示 | 右键菜单项，仅桌面端且歌曲有真实路径时出现（Web 端 `<input type=file>` 拿不到路径；桌面端在导入时用 `webUtils.getPathForFile` 记录） |
-| 托盘 | 关闭窗口收进托盘而不是退出；托盘菜单可显示/隐藏、开机自启、退出 |
-| 自动更新 | `electron-updater` + GitHub Releases；打包版启动时检查，下载完成后询问是否重启安装 |
-| 应用图标 | `build/icon.ico`（16~256 多尺寸），由 `build/make_icon.py` 生成 |
+| 托盘           | 关闭窗口收进托盘而不是退出；托盘菜单可显示/隐藏、开机自启、退出                                                                      |
+| 自动更新       | `electron-updater` + GitHub Releases；打包版启动时检查，下载完成后询问是否重启安装                                                   |
+| 应用图标       | `build/icon.ico`（16~256 多尺寸），由 `build/make_icon.py` 生成                                                                      |
 
 ## 数据存储与迁移
 
 - 所有数据都在本机 IndexedDB（`ZhuPlayDB`）：`songs`（含音频 File 与封面 Blob）、`musicData`（收藏 / 最近播放 / 队列 / 音量 / 听歌统计）、`playlists`
-- 桌面端默认数据目录：`%APPDATA%\zhuplay`；**设置页「数据目录 → 更改」可以换到任意磁盘**（复制现有数据后自动重启，旧目录保留）
-- 自定义目录的指针存在 `%APPDATA%\zhuplay\data-location.json`，删掉它即回到默认目录
+- 桌面端默认数据目录：`%APPDATA%/zhuplay`；**设置页「数据目录 → 更改」可以换到任意磁盘**（复制现有数据后自动重启，旧目录保留）
+- 自定义目录的指针存在 `%APPDATA%/zhuplay/data-location.json`，删掉它即回到默认目录
 - **换电脑完整迁移**：关闭应用 → 复制整个数据目录到新电脑（默认或自定义路径均可）→ 打开即为完整环境
 - **备份导出/导入**（设置页）：只含歌单、收藏、最近播放、听歌统计，几百 KB；导入按「文件名 + 大小」匹配本地歌曲并合并
 
@@ -192,7 +206,6 @@ $env:CSC_KEY_PASSWORD="证书密码"
 npm run electron:build
 ```
 
-
 首次安装依赖如果 Electron 二进制下载失败，可指定镜像：
 
 ```powershell
@@ -200,4 +213,3 @@ $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
 $env:ELECTRON_BUILDER_BINARIES_MIRROR="https://npmmirror.com/mirrors/electron-builder-binaries/"
 node node_modules/electron/install.js
 ```
-
