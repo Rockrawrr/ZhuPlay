@@ -24,9 +24,12 @@
   color: var(--color-primary);
 }
 
-.player-icon:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+/* 不可用状态：图标变灰、不出现"禁止"光标，也不响应悬停高亮
+   （没播放歌曲时的心形 / 歌词 / 上一首 / 下一首都走这里） */
+.player-icon:disabled,
+.player-icon:disabled:hover {
+  color: #4d4d4d;
+  cursor: default;
 }
 
 /* 主播放/暂停按钮 */
