@@ -4,7 +4,7 @@
 
 完整架构与实现说明见 **[docs/TECHNICAL.md](docs/TECHNICAL.md)**。
 
-本地音乐播放器（Vue 3 + Vite + Pinia + IndexedDB），目标是在浏览器端先把功能做完整，再封装为桌面应用。
+本地音乐播放器（Vue 3 + Vite + Pinia + IndexedDB）。
 
 ## 目录结构
 
