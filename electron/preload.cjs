@@ -41,8 +41,25 @@ contextBridge.exposeInMainWorld("zhuplayDesktop", {
 
   // 数据目录（IndexedDB、窗口状态都在这里）
   getDataPath: () => ipcRenderer.invoke("app:get-data-path"),
+  // 当前 / 默认数据目录与是否自定义
+  getDataInfo: () => ipcRenderer.invoke("app:get-data-info"),
   // 在资源管理器里打开数据目录
   openDataFolder: () => ipcRenderer.invoke("app:open-data-folder"),
+  // 选择新数据目录（只选不做）
+  chooseDataDir: () => ipcRenderer.invoke("app:choose-data-dir"),
+  // 迁移到新目录（复制数据 + 写指针，调用方随后需要重启）
+  changeDataDir: (target) =>
+    ipcRenderer.invoke("app:change-data-dir", target),
+  // 恢复默认目录（复制回默认位置 + 删除指针，调用方随后需要重启）
+  resetDataDir: () => ipcRenderer.invoke("app:reset-data-dir"),
+  // 重启应用
+  relaunch: () => ipcRenderer.invoke("app:relaunch"),
+  // 迁移进度回调，返回取消订阅函数
+  onDataDirProgress: (handler) => {
+    const listener = (_event, progress) => handler(progress);
+    ipcRenderer.on("data-dir:progress", listener);
+    return () => ipcRenderer.removeListener("data-dir:progress", listener);
+  },
 
   // 备份导出：弹出保存对话框，返回实际写入的路径（取消返回空串）
   saveBackup: (json) => ipcRenderer.invoke("backup:save", json),

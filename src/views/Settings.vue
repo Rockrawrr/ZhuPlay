@@ -2,7 +2,7 @@
 // src/views/Settings.vue
 // 设置页：本地存储用量、数据统计、数据清理、关于
 // 说明：目前只有“数据管理”类设置，播放偏好等选项等有明确需求再加
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { Database, FolderOpen, HardDrive, Info, Trash2 } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";
@@ -93,15 +93,39 @@ function handleClearPlaylists() {
 
 const isDesktop = Boolean(window.zhuplayDesktop?.isDesktop);
 const dataPath = ref("");
+const dataInfo = ref({ current: "", default: "", isCustom: false });
+
+// 迁移数据时的进度与遮罩
+const isMigrating = ref(false);
+const migrateProgress = ref({ done: 0, total: 0 });
+let unsubscribeProgress = null;
+
+const migratePercent = computed(() => {
+  const { done, total } = migrateProgress.value;
+  if (!total) return 0;
+  return Math.min(100, Math.round((done / total) * 100));
+});
 
 onMounted(async () => {
   if (!isDesktop) return;
 
   try {
-    dataPath.value = await window.zhuplayDesktop.getDataPath();
+    const info = await window.zhuplayDesktop.getDataInfo();
+    dataInfo.value = info;
+    dataPath.value = info.current;
+
+    unsubscribeProgress = window.zhuplayDesktop.onDataDirProgress(
+      (progress) => {
+        migrateProgress.value = progress;
+      },
+    );
   } catch (error) {
     console.error("读取数据目录失败：", error);
   }
+});
+
+onUnmounted(() => {
+  unsubscribeProgress?.();
 });
 
 async function handleOpenDataFolder() {
@@ -109,6 +133,59 @@ async function handleOpenDataFolder() {
 
   const error = await window.zhuplayDesktop.openDataFolder();
   if (error) toast.error("打开目录失败");
+}
+
+// 更改数据目录：复制现有数据 → 重启（IndexedDB 位置由 userData 决定，必须重启）
+async function handleChangeDataDir() {
+  if (!isDesktop || isMigrating.value) return;
+
+  const target = await window.zhuplayDesktop.chooseDataDir();
+  if (!target) return;
+
+  const confirmed = await confirm({
+    title: "更改数据目录",
+    message: `会把当前数据（约 ${formatBytes(storage.value.usage)}）复制到：\n${target}\n\n复制完成后应用会自动重启。原目录的数据不会删除。`,
+    confirmText: "开始迁移",
+  });
+  if (!confirmed) return;
+
+  isMigrating.value = true;
+
+  const result = await window.zhuplayDesktop.changeDataDir(target);
+
+  if (!result?.ok) {
+    isMigrating.value = false;
+    toast.error(result?.error || "迁移失败，请换个目录重试");
+    return;
+  }
+
+  toast.success("迁移完成，正在重启…");
+  setTimeout(() => window.zhuplayDesktop.relaunch(), 800);
+}
+
+// 恢复默认数据目录：把数据复制回默认位置再重启
+async function handleResetDataDir() {
+  if (!isDesktop || isMigrating.value) return;
+
+  const confirmed = await confirm({
+    title: "恢复默认数据目录",
+    message: `会把数据复制回默认位置：\n${dataInfo.value.default}\n\n复制完成后应用会自动重启。`,
+    confirmText: "恢复默认",
+  });
+  if (!confirmed) return;
+
+  isMigrating.value = true;
+
+  const result = await window.zhuplayDesktop.resetDataDir();
+
+  if (!result?.ok) {
+    isMigrating.value = false;
+    toast.error(result?.error || "恢复失败，请重试");
+    return;
+  }
+
+  toast.success("已复制回默认目录，正在重启…");
+  setTimeout(() => window.zhuplayDesktop.relaunch(), 800);
 }
 
 async function handleExportBackup() {
@@ -208,16 +285,35 @@ async function handleClearAll() {
       <section class="panel">
         <h3 class="panel-title"><FolderOpen :size="17" /> 数据与备份</h3>
 
-        <p class="panel-hint">
-          歌曲与歌单保存在本机 IndexedDB 中，不会上传到任何服务器。
-        </p>
-
         <div v-if="isDesktop" class="action-row">
           <div class="action-text">
-            <strong>数据目录</strong>
+            <strong>
+              数据目录
+              <span v-if="dataInfo.isCustom" class="data-badge">自定义</span>
+            </strong>
             <span class="data-path" :title="dataPath">{{ dataPath || "读取中…" }}</span>
           </div>
-          <button class="ghost-button" @click="handleOpenDataFolder">打开</button>
+
+          <div class="row-actions">
+            <button class="ghost-button" @click="handleOpenDataFolder">
+              打开
+            </button>
+            <button
+              class="ghost-button"
+              :disabled="isMigrating"
+              @click="handleChangeDataDir"
+            >
+              更改
+            </button>
+            <button
+              v-if="dataInfo.isCustom"
+              class="ghost-button"
+              :disabled="isMigrating"
+              @click="handleResetDataDir"
+            >
+              恢复默认
+            </button>
+          </div>
         </div>
 
         <div class="action-row">
@@ -235,11 +331,6 @@ async function handleClearAll() {
           </div>
           <button class="ghost-button" @click="handleImportBackup">导入</button>
         </div>
-
-        <p v-if="isDesktop" class="panel-hint">
-          换电脑完整迁移：关闭应用 → 把上面整个数据目录复制到新电脑的相同路径 →
-          打开即为完整环境（含音频文件）。
-        </p>
       </section>
 
       <!-- 数据管理 -->
@@ -299,8 +390,24 @@ async function handleClearAll() {
         <p class="panel-hint">
           ZhuPlay v{{ version }} · Vue 3 + Vite + Pinia + IndexedDB
         </p>
-        <p class="panel-hint">所有数据保存在本机浏览器中，不上传服务器。</p>
       </section>
+    </div>
+
+    <!-- 数据目录迁移遮罩：复制期间不允许操作 -->
+    <div v-if="isMigrating" class="migrate-mask">
+      <div class="migrate-card">
+        <strong>正在迁移数据</strong>
+        <p v-if="migrateProgress.total">
+          {{ migrateProgress.done }} / {{ migrateProgress.total }} 个文件
+        </p>
+        <p v-else>正在准备…</p>
+
+        <div class="migrate-bar">
+          <div class="migrate-fill" :style="{ width: `${migratePercent}%` }"></div>
+        </div>
+
+        <span class="migrate-hint">请勿关闭应用，完成后会自动重启</span>
+      </div>
     </div>
   </section>
 </template>
@@ -344,6 +451,77 @@ async function handleClearAll() {
   white-space: nowrap;
   color: #7f9c8c;
   font-size: 12px;
+}
+
+.data-badge {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: #1e3a2c;
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 迁移遮罩 */
+.migrate-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.migrate-card {
+  width: min(380px, calc(100vw - 40px));
+  padding: 22px;
+  border-radius: 12px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #fff;
+  text-align: center;
+}
+
+.migrate-card strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.migrate-card p {
+  margin: 0 0 14px;
+  color: #9a9a9a;
+  font-size: 12px;
+}
+
+.migrate-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #2a2a2a;
+  overflow: hidden;
+}
+
+.migrate-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+.migrate-hint {
+  display: block;
+  margin-top: 12px;
+  color: #6f6f6f;
+  font-size: 11px;
 }
 
 /* 存储条 */

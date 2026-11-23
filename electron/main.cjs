@@ -38,6 +38,53 @@ const DEVTOOLS_ENABLED =
   process.argv.includes("--devtools") ||
   process.env.ZHUPLAY_DEVTOOLS === "1";
 
+// ===== 自定义数据目录 =====
+// 指针文件固定在「默认 userData」下，才能在被改到别处后仍找得到自己
+const DEFAULT_USER_DATA_DIR = path.join(app.getPath("appData"), app.getName());
+const DATA_POINTER_FILE = path.join(DEFAULT_USER_DATA_DIR, "data-location.json");
+
+// 迁移时跳过的纯缓存目录，避免白拷几百 MB
+const SKIP_COPY_DIRS = new Set([
+  "Cache",
+  "Code Cache",
+  "GPUCache",
+  "DawnGraphiteCache",
+  "DawnWebGPUCache",
+  "GrShaderCache",
+  "GPUPersistentCache",
+  "ShaderCache",
+  "Dictionaries",
+]);
+
+function readCustomDataDir() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(DATA_POINTER_FILE, "utf8"));
+    const dir = typeof raw?.dataDir === "string" ? raw.dataDir.trim() : "";
+    if (!dir) return "";
+    if (!fs.existsSync(dir)) return "";
+    return dir;
+  } catch {
+    return "";
+  }
+}
+
+// 必须在 app ready 之前调用：Chromium 会用 userData 初始化存储
+function applyCustomDataDir() {
+  const dir = readCustomDataDir();
+  if (!dir) return "";
+
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    app.setPath("userData", dir);
+    return dir;
+  } catch (error) {
+    console.error("自定义数据目录不可用，回退默认目录：", error);
+    return "";
+  }
+}
+
+applyCustomDataDir();
+
 // 打包后 dist 在 app.asar 内，用 __dirname 相对定位
 const DIST_DIR = path.join(__dirname, "..", "dist");
 
@@ -322,6 +369,82 @@ function saveWindowState(win) {
   }
 }
 
+// ===== 数据目录切换 =====
+
+// child 是否位于 parent 内部（同一路径不算）
+function isInside(parent, child) {
+  const relative = path.relative(parent, child);
+  return Boolean(relative) && !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
+// 校验目标目录，返回错误文案（空串表示可用）
+function validateDataDir(target) {
+  if (typeof target !== "string" || target.trim() === "") {
+    return "没有选择目录";
+  }
+
+  const current = path.resolve(app.getPath("userData"));
+  const next = path.resolve(target);
+
+  if (next === current) return "这已经是当前数据目录";
+  if (isInside(next, current)) return "不能选择当前目录的子目录";
+  if (isInside(current, next)) return "不能选择当前目录的父目录";
+
+  return "";
+}
+
+// 复制 userData（跳过缓存目录），每 20 个文件回报一次进度
+async function copyUserData(source, target, onProgress) {
+  const files = [];
+
+  async function walk(dir) {
+    const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const absolute = path.join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (SKIP_COPY_DIRS.has(entry.name)) continue;
+        await walk(absolute);
+      } else {
+        files.push(absolute);
+      }
+    }
+  }
+
+  await walk(source);
+  await fs.promises.mkdir(target, { recursive: true });
+
+  let done = 0;
+
+  for (const file of files) {
+    const destination = path.join(target, path.relative(source, file));
+    await fs.promises.mkdir(path.dirname(destination), { recursive: true });
+    await fs.promises.copyFile(file, destination);
+    done += 1;
+
+    if (done % 20 === 0 || done === files.length) {
+      onProgress?.({ done, total: files.length });
+    }
+  }
+
+  return files.length;
+}
+
+function writeDataPointer(dir) {
+  fs.mkdirSync(DEFAULT_USER_DATA_DIR, { recursive: true });
+  fs.writeFileSync(
+    DATA_POINTER_FILE,
+    JSON.stringify({ dataDir: dir, updatedAt: Date.now() }, null, 2),
+    "utf8",
+  );
+}
+
+function restartApp() {
+  app.relaunch();
+  app.exit(0);
+}
+
 function createWindow() {
   const bounds = loadWindowState();
 
@@ -474,6 +597,72 @@ if (!app.requestSingleInstanceLock()) {
 
     // 数据目录：IndexedDB 等都在这里，换电脑时复制整个目录即可
     ipcMain.handle("app:get-data-path", () => app.getPath("userData"));
+
+    // 数据目录信息（当前 / 默认 / 是否自定义）
+    ipcMain.handle("app:get-data-info", () => ({
+      current: app.getPath("userData"),
+      default: DEFAULT_USER_DATA_DIR,
+      isCustom:
+        path.resolve(app.getPath("userData")) !==
+        path.resolve(DEFAULT_USER_DATA_DIR),
+    }));
+
+    // 选择新目录（只选不做，真正迁移走 app:change-data-dir）
+    ipcMain.handle("app:choose-data-dir", async () => {
+      const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+        title: "选择数据目录",
+        properties: ["openDirectory", "createDirectory"],
+        defaultPath: app.getPath("userData"),
+      });
+
+      if (canceled || filePaths.length === 0) return "";
+      return filePaths[0];
+    });
+
+    // 迁移到新目录：复制现有数据 → 写指针 → 重启
+    ipcMain.handle("app:change-data-dir", async (_event, target) => {
+      const invalid = validateDataDir(target);
+      if (invalid) return { ok: false, error: invalid };
+
+      try {
+        await copyUserData(app.getPath("userData"), target, (progress) => {
+          mainWindow?.webContents.send("data-dir:progress", progress);
+        });
+
+        writeDataPointer(target);
+        return { ok: true, target };
+      } catch (error) {
+        console.error("数据目录迁移失败：", error);
+        return { ok: false, error: String(error?.message || error) };
+      }
+    });
+
+    // 恢复默认目录：把数据复制回默认位置 → 删除指针 → 重启
+    ipcMain.handle("app:reset-data-dir", async () => {
+      const current = path.resolve(app.getPath("userData"));
+      const fallback = path.resolve(DEFAULT_USER_DATA_DIR);
+
+      if (current === fallback) {
+        return { ok: false, error: "已经是默认数据目录" };
+      }
+
+      try {
+        await copyUserData(current, fallback, (progress) => {
+          mainWindow?.webContents.send("data-dir:progress", progress);
+        });
+
+        fs.rmSync(DATA_POINTER_FILE, { force: true });
+        return { ok: true, target: fallback };
+      } catch (error) {
+        console.error("恢复默认数据目录失败：", error);
+        return { ok: false, error: String(error?.message || error) };
+      }
+    });
+
+    ipcMain.handle("app:relaunch", () => {
+      restartApp();
+      return true;
+    });
 
     ipcMain.handle("app:open-data-folder", async () => {
       const dataPath = app.getPath("userData");

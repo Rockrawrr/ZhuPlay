@@ -90,9 +90,7 @@ build/             icon.ico / icon.png / make_icon.py
 
 ---
 
-## 5. 数据模型与存储
-
-### 5.1 IndexedDB
+## 5. 数据模型与存储### 5.1 IndexedDB
 
 数据库 `ZhuPlayDB`（版本 2），三个对象仓库：
 
@@ -130,10 +128,28 @@ build/             icon.ico / icon.png / make_icon.py
 
 | 端 | 路径 |
 | --- | --- |
-| 桌面端 | `%APPDATA%\ZhuPlay\IndexedDB\app_zhuplay_0.indexeddb.{leveldb,blob}` |
+| 桌面端（默认） | `%APPDATA%\zhuplay\IndexedDB\app_zhuplay_0.indexeddb.{leveldb,blob}` |
+| 桌面端（自定义） | 设置页「数据目录 → 更改」选择的位置，目录结构相同 |
 | Web | `%LOCALAPPDATA%\Google\Chrome\User Data\Default\IndexedDB\http_localhost_5173...` |
 
 Chromium 把大 Blob 单独放 `.indexeddb.blob`，记录放 `.leveldb`。
+
+### 5.4.1 自定义数据目录
+
+桌面端允许把数据放到任意磁盘（例如 D 盘），实现要点：
+
+- **指针文件固定在默认目录**：`%APPDATA%\zhuplay\data-location.json`，内容 `{ dataDir, updatedAt }`。
+  位置固定才能在被改到 D 盘后仍找得到自己；主进程在 `app.whenReady()` 之前读取它并
+  `app.setPath("userData", dir)`，Chromium 才会用新目录初始化 IndexedDB。
+- **切换时必须重启**：IndexedDB 的位置在进程启动时决定，运行中改路径无效，因此迁移完成后
+  `app.relaunch() + app.exit(0)`。
+- **迁移是"复制"而不是"移动"**：复制当前 userData 到新目录（跳过 Cache / GPUCache 等纯缓存目录），
+  写指针，重启；旧目录保留，出问题可回退。
+- **校验**：目标不能等于当前目录，也不能是当前目录的父/子目录。
+- **恢复默认**：把数据复制回默认目录并删除指针，再重启。
+- 渲染端通过 `data-dir:progress` 事件显示进度遮罩（`app:change-data-dir` 返回前完成复制）。
+
+对应 IPC：`app:get-data-info`、`app:choose-data-dir`、`app:change-data-dir`、`app:reset-data-dir`、`app:relaunch`。
 
 ---
 
