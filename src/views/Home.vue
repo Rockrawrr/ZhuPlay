@@ -10,6 +10,7 @@ import { useMusicActions } from "@/composables/useMusicActions";
 import { useNavigation } from "@/composables/useNavigation";
 import HomeAlbumGrid from "@/components/home/HomeAlbumGrid.vue";
 import HomeRecentList from "@/components/home/HomeRecentList.vue";
+import { currentGreeting } from "@/utils/greeting";
 
 const albums = [
   { id: 1, title: "最近播放", description: "继续聆听你的音乐" },
@@ -25,6 +26,10 @@ const { songs, recentSongs, recentImportedSongs, favoriteSongsList } =
 const { playSong } = useAudioPlayer();
 const { clearRecentSongs } = useMusicActions();
 const { canGoBack, canGoForward, goBack, goForward, navigateTo } = useNavigation();
+
+// ===== 问候语 =====
+const greeting = ref(currentGreeting());
+let greetingTimer = null;
 
 // ===== 右上角「访客用户」菜单 =====
 const showProfileMenu = ref(false);
@@ -54,15 +59,25 @@ function goSettings() {
 onMounted(() => {
   document.addEventListener("click", handleDocumentClick);
   window.addEventListener("keydown", handleEscape);
+
+  // 每分钟刷新一次问候语，跨时段（如 11:00 中午）时自动变化
+  greetingTimer = setInterval(() => {
+    greeting.value = currentGreeting();
+  }, 60_000);
 });
 
 onUnmounted(() => {
   document.removeEventListener("click", handleDocumentClick);
   window.removeEventListener("keydown", handleEscape);
+
+  if (greetingTimer) clearInterval(greetingTimer);
 });
 
+// ===== 收藏 =====
+
 // 收藏 ID 集合，供推荐卡片快速判断
-const favoriteIds = computed(  () => new Set(favoriteSongsList.value.map((song) => song.id)),
+const favoriteIds = computed(
+  () => new Set(favoriteSongsList.value.map((song) => song.id)),
 );
 
 // 首页精选：先收藏、再其它，最多 6 首
@@ -156,7 +171,7 @@ function playRecent(song) {
     </header>
 
     <section class="welcome-section">
-      <h1>早上好</h1>
+      <h1>{{ greeting }}</h1>
 
       <div class="quick-grid">
         <div
