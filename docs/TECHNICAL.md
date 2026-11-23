@@ -174,6 +174,14 @@ Chromium 把大 Blob 单独放 `.indexeddb.blob`，记录放 `.leveldb`。
 - 同一次选择里重复选中同一个文件也只导入一次
 - 命中重复时不解析元数据，直接跳过并提示「已在音乐库里」
 
+### 6.1.1 重复清理（历史数据）
+
+`1.2.2` 之前重复导入产生的副本不会被自动删除，设置页提供手动清理：
+
+- 「数据管理 → 清理重复歌曲」按同一指纹分组，组内按导入时间升序
+- 每组默认保留最早导入的一条，可手动改选
+- 删除走 `useMusicActions.removeSongs`：歌曲、收藏、歌单、队列一起清理，单个事务落库
+
 ### 6.2 播放
 
 ```
@@ -335,7 +343,7 @@ npm run electron:build # NSIS 安装包 release/ZhuPlay-x.y.z-setup.exe
 - **Web**：Chrome DevTools → Application → IndexedDB → `ZhuPlayDB`
 - **桌面**：`ZhuPlay.exe --devtools`（或托盘菜单）打开 DevTools
 - **静态检查**：`npm run lint`（ESLint flat config，Vue essential 规则）
-- **单元测试**：`npm test`（Vitest；当前覆盖歌词解析与格式化函数）
+- **单元测试**：`npm test`（Vitest；覆盖歌词解析、格式化、导入去重）
 - **自动化验证**：无头 Chrome + CDP
   - `Runtime.evaluate` 注入 store 数据、读取 DOM 状态
   - `Emulation.setDeviceMetricsOverride` 模拟手机宽度

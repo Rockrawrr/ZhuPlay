@@ -56,3 +56,29 @@ export function filterDuplicateFiles(files, existingSongs = [], resolvePath = ()
 
   return { fresh, duplicates };
 }
+
+/**
+ * 找出曲库里的重复组（同名 + 同大小）
+ * 每组按导入时间升序，第一首默认是"保留"的那条
+ * @param {Array} songs
+ * @returns {Array<{ key: string, songs: Array }>}
+ */
+export function findDuplicateGroups(songs = []) {
+  const buckets = new Map();
+
+  for (const song of songs) {
+    const key = songFingerprint(song);
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(song);
+  }
+
+  return [...buckets.entries()]
+    .filter(([, items]) => items.length > 1)
+    .map(([key, items]) => ({
+      key,
+      songs: [...items].sort(
+        (a, b) => (a.importedAt ?? 0) - (b.importedAt ?? 0),
+      ),
+    }))
+    .sort((a, b) => b.songs.length - a.songs.length);
+}

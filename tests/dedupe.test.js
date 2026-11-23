@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   fileFingerprint,
   filterDuplicateFiles,
+  findDuplicateGroups,
   songFingerprint,
 } from "../src/utils/dedupe";
 
@@ -72,5 +73,45 @@ describe("filterDuplicateFiles", () => {
       fresh: [],
       duplicates: [],
     });
+  });
+});
+
+describe("findDuplicateGroups", () => {
+  it("按文件名+大小分组，组内按导入时间升序", () => {
+    const songs = [
+      { id: "b", filename: "x.mp3", fileSize: 10, importedAt: 300 },
+      { id: "a", filename: "x.mp3", fileSize: 10, importedAt: 100 },
+      { id: "c", filename: "x.mp3", fileSize: 10, importedAt: 200 },
+      { id: "d", filename: "y.mp3", fileSize: 20, importedAt: 100 },
+    ];
+
+    const groups = findDuplicateGroups(songs);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].songs.map((song) => song.id)).toEqual(["a", "c", "b"]);
+    expect(groups[0].key).toBe("x.mp3|10");
+  });
+
+  it("没有重复时返回空数组", () => {
+    expect(
+      findDuplicateGroups([
+        { id: "1", filename: "a.mp3", fileSize: 1 },
+        { id: "2", filename: "b.mp3", fileSize: 2 },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("多组重复按组内数量降序", () => {
+    const songs = [
+      { id: "a1", filename: "a.mp3", fileSize: 1 },
+      { id: "a2", filename: "a.mp3", fileSize: 1 },
+      { id: "b1", filename: "b.mp3", fileSize: 2 },
+      { id: "b2", filename: "b.mp3", fileSize: 2 },
+      { id: "b3", filename: "b.mp3", fileSize: 2 },
+    ];
+
+    const groups = findDuplicateGroups(songs);
+
+    expect(groups.map((group) => group.key)).toEqual(["b.mp3|2", "a.mp3|1"]);
   });
 });

@@ -16,6 +16,7 @@ import { useConfirm } from "@/composables/useConfirm";
 import { formatBytes } from "@/utils/format";
 import { exportBackup, importBackup } from "@/services/backupService";
 import PageHeader from "@/components/common/PageHeader.vue";
+import DuplicateCleanupDialog from "@/components/overlays/DuplicateCleanupDialog.vue";
 
 const musicStore = useMusicStore();
 const playlistStore = usePlaylistStore();
@@ -83,9 +84,7 @@ function handleClearQueue() {
 // 清除所有歌曲 / 歌单：二次确认与落库都在对应 composable 里
 function handleClearSongs() {
   clearAllSongs();
-}
-
-function handleClearPlaylists() {
+}function handleClearPlaylists() {
   clearAllPlaylists();
 }
 
@@ -97,6 +96,7 @@ const dataInfo = ref({ current: "", default: "", isCustom: false });
 
 // 迁移数据时的进度与遮罩
 const isMigrating = ref(false);
+const showDuplicateCleanup = ref(false);
 const migrateProgress = ref({ done: 0, total: 0 });
 let unsubscribeProgress = null;
 
@@ -353,6 +353,16 @@ async function handleClearAll() {
           <button class="ghost-button" @click="handleClearQueue">清空</button>
         </div>
 
+        <div class="action-row">
+          <div class="action-text">
+            <strong>清理重复歌曲</strong>
+            <span>检测同名同大小的重复曲目，可选择每组保留哪一条</span>
+          </div>
+          <button class="ghost-button" @click="showDuplicateCleanup = true">
+            检查
+          </button>
+        </div>
+
         <div class="action-row danger">
           <div class="action-text">
             <strong>清除所有歌曲</strong>
@@ -409,6 +419,12 @@ async function handleClearAll() {
         <span class="migrate-hint">请勿关闭应用，完成后会自动重启</span>
       </div>
     </div>
+
+    <!-- 重复歌曲清理 -->
+    <DuplicateCleanupDialog
+      v-if="showDuplicateCleanup"
+      @close="showDuplicateCleanup = false"
+    />
   </section>
 </template>
 
