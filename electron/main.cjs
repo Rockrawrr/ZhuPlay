@@ -583,6 +583,20 @@ if (!app.requestSingleInstanceLock()) {
       }
     });
 
+    // 读取音频文件（桌面端「仅记录路径」模式播放时按需读取）
+    // 上限 512 MB：一次性读进内存再转 Blob，超大文件不适用
+    ipcMain.handle("fs:read-audio", async (_event, filePath) => {
+      if (typeof filePath !== "string" || filePath.length === 0) return null;
+
+      try {
+        const stat = await fs.promises.stat(filePath);
+        if (!stat.isFile() || stat.size > 512 * 1024 * 1024) return null;
+        return await fs.promises.readFile(filePath);
+      } catch {
+        return null;
+      }
+    });
+
     // 开机自启
     ipcMain.handle("app:get-open-at-login", () =>
       app.getLoginItemSettings().openAtLogin,

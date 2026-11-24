@@ -153,6 +153,19 @@ Chromium 把大 Blob 单独放 `.indexeddb.blob`，记录放 `.leveldb`。
 
 对应 IPC：`app:get-data-info`、`app:choose-data-dir`、`app:change-data-dir`、`app:reset-data-dir`、`app:relaunch`。
 
+### 5.4.2 桌面端「仅保存路径」
+
+默认导入会把音频 File 一并存进 IndexedDB，同一份音频在磁盘上占两份。桌面端可开启
+「仅保存路径」（设置 → 数据与备份，`localStorage: zhuplay:path-only`）：
+
+- 导入时：记录 `filePath` 后 `delete song.file`，不写音频；`fileSize` 仍保留（去重与备份匹配要用）
+- 播放时：`assetUrls.getSongAudioUrlAsync` 发现没有 File，就走 `window.zhuplayDesktop.readAudioFile(filePath)`
+  → 主进程 `fs:read-audio` 读文件（上限 512 MB）→ 包成 Blob → objectURL，仍走 3 个 URL 的 LRU
+- 文件被移动 / 删除：读取返回 null，播放前提示「无法读取音频文件，可能已被移动或删除」
+- 已导入的老歌可点「释放音频副本」：逐首把记录里的 `file` 去掉并重写（原文件不动），
+  返回释放条数；没有 `filePath`（Web 端导入）的歌会跳过
+- 注意：IndexedDB 的 LevelDB 不会立刻回收已删除 Blob 的空间，磁盘占用下降可能有延迟
+
 ---
 
 ## 6. 核心流程

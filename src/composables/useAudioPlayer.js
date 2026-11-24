@@ -10,7 +10,7 @@ import { useMusicStore } from "@/stores/music";
 import { usePlayerStore } from "@/stores/player";
 import { getAudioService, getMusicStorage } from "@/app/services";
 import { STORAGE_KEYS } from "@/storage/keys";
-import { getSongAudioUrl } from "@/services/assetUrls";
+import { getSongAudioUrlAsync } from "@/services/assetUrls";
 import { useListeningStats } from "@/composables/useListeningStats";
 import { useToast } from "@/composables/useToast";
 
@@ -84,7 +84,7 @@ function createInstance() {
 
   // 播放歌曲
   // playList：本次播放所在的列表，决定上一首/下一首的边界
-  function playSong(song, playList = null) {
+  async function playSong(song, playList = null) {
     if (!song) return;
 
     const context = resolveQueue(song, playList);
@@ -131,11 +131,32 @@ function createInstance() {
       .catch((error) => console.error("最近播放记录保存失败：", error));
 
     playerStore.setCurrentSong(song);
-    // 播放地址按需创建（缓存最近 3 首，超出自动回收）
-    audioService.setSource(getSongAudioUrl(song));
-
     // 下次 loadedmetadata 时跳回上次位置（见 handleLoadedMetadata）
     pendingResume = Number(positions[song.id]) || 0;
+
+    // 播放地址按需创建（缓存最近 3 首，超出自动回收）
+    // 有 File 直接建 URL；「仅保存路径」的歌需要先通过主进程读文件
+    let source;
+
+    try {
+      source = await getSongAudioUrlAsync(song);
+    } catch (error) {
+      console.error("读取音频文件失败：", error);
+      toast.error("无法读取音频文件，可能已被移动或删除");
+      playerStore.setPlaying(false);
+      return;
+    }
+
+    // 读取期间用户可能又点了别的歌
+    if (playerStore.currentSong?.id !== song.id) return;
+
+    if (!source) {
+      toast.error("无法读取音频文件，可能已被移动或删除");
+      playerStore.setPlaying(false);
+      return;
+    }
+
+    audioService.setSource(source);
 
     audioService
       .play()

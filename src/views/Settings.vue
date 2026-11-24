@@ -14,6 +14,7 @@ import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useToast } from "@/composables/useToast";
 import { useConfirm } from "@/composables/useConfirm";
 import { formatBytes } from "@/utils/format";
+import { pathOnly, setPathOnly } from "@/utils/appSettings";
 import { exportBackup, importBackup } from "@/services/backupService";
 import PageHeader from "@/components/common/PageHeader.vue";
 import DuplicateCleanupDialog from "@/components/overlays/DuplicateCleanupDialog.vue";
@@ -24,7 +25,7 @@ const playerStore = usePlayerStore();
 
 const musicStorage = getMusicStorage();
 
-const { clearRecentSongs, clearAllSongs } = useMusicActions();
+const { clearRecentSongs, clearAllSongs, releaseStoredAudio } = useMusicActions();
 const { clearAllPlaylists } = usePlaylistActions();
 const toast = useToast();
 const { confirm } = useConfirm();
@@ -88,8 +89,46 @@ function handleClearQueue() {
 // 清除所有歌曲 / 歌单：二次确认与落库都在对应 composable 里
 function handleClearSongs() {
   clearAllSongs();
-}function handleClearPlaylists() {
+}
+
+function handleClearPlaylists() {
   clearAllPlaylists();
+}
+
+// ===== 桌面端「仅保存路径」 =====
+
+function handlePathOnlyChange(enabled) {
+  setPathOnly(enabled);
+  toast.success(
+    enabled
+      ? "已开启：之后导入的歌曲只保存路径"
+      : "已关闭：之后导入的歌曲会复制音频到曲库",
+  );
+}
+
+async function handleReleaseStoredAudio() {
+  const storedCount = songs.value.filter(
+    (song) => song.file instanceof Blob && song.filePath,
+  ).length;
+
+  if (storedCount === 0) {
+    toast.info("没有可释放的音频副本");
+    return;
+  }
+
+  const confirmed = await confirm({
+    title: "释放音频副本",
+    message: `将删除 ${storedCount} 首歌曲在曲库里的音频副本（原文件不受影响）。之后只能从原路径播放，文件移动或删除后将无法播放。`,
+    confirmText: "释放",
+    danger: true,
+  });
+  if (!confirmed) return;
+
+  const { released, skipped } = await releaseStoredAudio();
+  toast.success(
+    `已释放 ${released} 首${skipped > 0 ? `，${skipped} 首无路径跳过` : ""}`,
+  );
+  await loadStorage();
 }
 
 // ===== 数据目录与备份 =====
@@ -325,6 +364,34 @@ async function handleClearAll() {
               恢复默认
             </button>
           </div>
+        </div>
+
+        <div v-if="isDesktop" class="action-row">
+          <div class="action-text">
+            <strong>仅保存路径</strong>
+            <span>
+              新导入的歌曲只记录文件位置，不复制音频，最多省一半磁盘；
+              文件被移动或删除后无法播放
+            </span>
+          </div>
+          <label class="switch">
+            <input
+              type="checkbox"
+              :checked="pathOnly"
+              @change="handlePathOnlyChange($event.target.checked)"
+            />
+            <span class="switch-track"></span>
+          </label>
+        </div>
+
+        <div v-if="isDesktop && pathOnly" class="action-row">
+          <div class="action-text">
+            <strong>释放已保存的音频副本</strong>
+            <span>把已导入歌曲的音频副本从曲库删掉，只保留路径（原文件不动）</span>
+          </div>
+          <button class="ghost-button" @click="handleReleaseStoredAudio">
+            释放
+          </button>
         </div>
 
         <div class="action-row">
@@ -616,6 +683,60 @@ async function handleClearAll() {
 .action-row:first-of-type {
   border-top: none;
   padding-top: 0;
+}
+
+/* 开关 */
+.switch {
+  position: relative;
+  display: inline-flex;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 11px;
+  background: #3a3a3a;
+  transition: background 0.2s ease;
+}
+
+.switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+
+.switch input:checked + .switch-track {
+  background: var(--color-primary);
+}
+
+.switch input:checked + .switch-track::after {
+  transform: translateX(18px);
+}
+
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .action-text {

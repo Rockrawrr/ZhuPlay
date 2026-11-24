@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld("zhuplayDesktop", {
   // 读取同目录下的同名 .lrc 歌词，没有则返回空串
   readLyricsFile: (filePath) => ipcRenderer.invoke("fs:read-lyrics", filePath),
 
+  // 按路径读取音频（「仅记录路径」模式播放时用），失败返回 null
+  readAudioFile: (filePath) => ipcRenderer.invoke("fs:read-audio", filePath),
+
   // 开机自启开关
   getOpenAtLogin: () => ipcRenderer.invoke("app:get-open-at-login"),
   setOpenAtLogin: (enabled) =>

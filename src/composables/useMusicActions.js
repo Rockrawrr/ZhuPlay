@@ -18,6 +18,7 @@ import { releaseAllAudioUrls, releaseSongAudioUrl } from "@/services/assetUrls";
 import { persistSafely } from "@/utils/persist";
 import { filterDuplicateFiles } from "@/utils/dedupe";
 import { importState } from "@/composables/useImportStatus";
+import { pathOnly } from "@/utils/appSettings";
 
 export function useMusicActions() {
   const musicStore = useMusicStore();
@@ -57,6 +58,12 @@ export function useMusicActions() {
     }
 
     song.filePath = resolveFilePath(file);
+
+    // 桌面端「仅保存路径」：不把音频复制进 IndexedDB
+    if (pathOnly.value && song.filePath) {
+      delete song.file;
+      song.pathOnly = true;
+    }
 
     // 桌面端：没有内嵌歌词时，尝试读同目录下的同名 .lrc
     if (!song.lyrics && song.filePath) {
@@ -404,10 +411,40 @@ export function useMusicActions() {
     });
   }
 
+  // 释放已保存的音频副本：只保留路径（原文件不动）
+  async function releaseStoredAudio() {
+    const targets = musicStore.songs.filter(
+      (song) => song.file instanceof Blob && song.filePath,
+    );
+    const skipped = musicStore.songs.filter(
+      (song) => song.file instanceof Blob && !song.filePath,
+    ).length;
+
+    let released = 0;
+
+    for (const song of targets) {
+      const updated = musicStore.updateSong(song.id, {
+        file: undefined,
+        pathOnly: true,
+      });
+      if (!updated) continue;
+
+      try {
+        await musicStorage.saveSong(updated);
+        released += 1;
+      } catch (error) {
+        console.error("释放音频副本失败：", error);
+      }
+    }
+
+    return { released, skipped };
+  }
+
   return {
     importSongs,
     cancelImport,
     importLyrics,
+    releaseStoredAudio,
     toggleFavorite,
     clearRecentSongs,
     removeRecentSong,
