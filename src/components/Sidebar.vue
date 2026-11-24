@@ -19,10 +19,30 @@ import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useConfirm } from "@/composables/useConfirm";
 import { usePlaylistStore } from "@/stores/playlist";
 import { storeToRefs } from "pinia";
+import { ref } from "vue";
+import { useToast } from "@/composables/useToast";
 
 const { currentPage, params, navigateTo } = useNavigation();
-const { createPlaylist } = usePlaylistActions();
+const { createPlaylist, addSongToPlaylist } = usePlaylistActions();
 const { prompt } = useConfirm();
+const toast = useToast();
+
+// 拖拽歌曲到歌单时的高亮目标
+const dragOverId = ref("");
+
+async function handleDrop(playlist, event) {
+  dragOverId.value = "";
+
+  const songId =
+    event.dataTransfer?.getData("application/x-zhuplay-song") ||
+    event.dataTransfer?.getData("text/plain");
+  if (!songId) return;
+
+  const added = await addSongToPlaylist(playlist.id, songId);
+  toast[added ? "success" : "info"](
+    added ? `已添加到「${playlist.name}」` : "这首歌已经在歌单里了",
+  );
+}
 
 // 侧边栏「我的音乐库」下方直接列出已创建的歌单
 const { playlists } = storeToRefs(usePlaylistStore());
@@ -144,10 +164,14 @@ async function handleCreatePlaylist() {
           class="playlist-item"
           :class="{
             active: currentPage === 'playlists' && params.id === playlist.id,
+            'drop-target': dragOverId === playlist.id,
           }"
           href="#"
           :title="playlist.name"
           @click.prevent="navigateTo('playlists', { id: playlist.id })"
+          @dragover.prevent="dragOverId = playlist.id"
+          @dragleave="dragOverId = dragOverId === playlist.id ? '' : dragOverId"
+          @drop.prevent="handleDrop(playlist, $event)"
         >
           <span class="playlist-name">{{ playlist.name }}</span>
           <span class="playlist-count">{{ playlist.songIds.length }}</span>
@@ -269,6 +293,13 @@ async function handleCreatePlaylist() {
 .playlist-item:hover {
   background: #1f1f1f;
   color: #fff;
+}
+
+/* 拖拽歌曲悬停到歌单时的落点高亮 */
+.playlist-item.drop-target {
+  background: #1d2b23;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px #2f5f47;
 }
 
 .playlist-item.active {

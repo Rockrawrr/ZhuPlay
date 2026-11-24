@@ -3,7 +3,7 @@
 // 这里负责业务动作（新建、改名、删除、加歌、移歌）与播放，UI 细节在 components/playlist/ 下
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { ListMusic, Plus } from "lucide-vue-next";
+import { Clock3, ListMusic, Plus, Sparkles } from "lucide-vue-next";
 import { usePlaylistStore } from "@/stores/playlist";
 import { useMusicStore } from "@/stores/music";
 import { usePlaylistActions } from "@/composables/usePlaylistActions";
@@ -140,6 +140,35 @@ function closeAddPanel() {
       </template>
     </PageHeader>
 
+    <!-- 智能歌单：按规则动态生成，不占用歌单位 -->
+    <section v-if="songs.length > 0" class="smart-section">
+      <h3 class="smart-title">智能歌单</h3>
+
+      <div class="smart-grid">
+        <button
+          class="smart-card"
+          @click="navigateTo('smart', { type: 'frequent' })"
+        >
+          <span class="smart-icon"><Sparkles :size="18" /></span>
+          <span class="smart-text">
+            <strong>最常播放</strong>
+            <span>按播放次数排序</span>
+          </span>
+        </button>
+
+        <button
+          class="smart-card"
+          @click="navigateTo('smart', { type: 'recent' })"
+        >
+          <span class="smart-icon"><Clock3 :size="18" /></span>
+          <span class="smart-text">
+            <strong>最近添加</strong>
+            <span>最新导入的歌曲</span>
+          </span>
+        </button>
+      </div>
+    </section>
+
     <EmptyState
       v-if="playlists.length === 0"
       title="还没有歌单"
@@ -193,5 +222,69 @@ function closeAddPanel() {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 16px;
+}
+
+/* 智能歌单 */
+.smart-section {
+  margin-bottom: 22px;
+}
+
+.smart-title {
+  margin: 0 0 10px;
+  color: #b3b3b3;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.smart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.smart-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #181818;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.smart-card:hover {
+  background: #222;
+}
+
+.smart-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #1d2b23;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.smart-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.smart-text strong {
+  font-size: 13px;
+}
+
+.smart-text span {
+  color: #8a8a8a;
+  font-size: 11px;
 }
 </style>

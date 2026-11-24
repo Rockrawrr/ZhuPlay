@@ -17,6 +17,7 @@ const Playlists = () => import("@/views/Playlists.vue");
 const Search = () => import("@/views/Search.vue");
 const Settings = () => import("@/views/Settings.vue");
 const Stats = () => import("@/views/Stats.vue");
+const SmartPlaylist = () => import("@/views/SmartPlaylist.vue");
 
 export const routes = [
   { path: "/", name: "home", component: Home },
@@ -31,6 +32,8 @@ export const routes = [
   // 歌单详情用可选参数：/playlists 是列表，/playlists/xxx 是详情
   { path: "/playlists/:id?", name: "playlists", component: Playlists },
   { path: "/search", name: "search", component: Search },
+  // 智能歌单：/smart/frequent（最常播放）· /smart/recent（最近添加）
+  { path: "/smart/:type", name: "smart", component: SmartPlaylist },
   { path: "/stats", name: "stats", component: Stats },
   { path: "/settings", name: "settings", component: Settings },
   // 未知路径回首页

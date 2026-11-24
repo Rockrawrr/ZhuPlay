@@ -6,7 +6,7 @@ import { Check, Heart, ListPlus, Music2, X } from "lucide-vue-next";
 import { formatTime } from "@/utils/format";
 import SongCover from "@/components/common/SongCover.vue";
 
-defineProps({
+const props = defineProps({
   song: {
     type: Object,
     required: true,
@@ -75,10 +75,26 @@ function focusSibling(event, delta) {
   target.focus();
   target.scrollIntoView({ block: "nearest" });
 }
+
+// 拖拽到侧边栏歌单：只带 songId，不碰 File 对象
+function handleDragStart(event) {
+  const song = props.song;
+  if (!song || !event.dataTransfer) return;
+
+  event.dataTransfer.effectAllowed = "copy";
+  event.dataTransfer.setData("application/x-zhuplay-song", song.id);
+  // 兼容不支持自定义 MIME 的场景（例如某些输入框）
+  event.dataTransfer.setData("text/plain", song.id);
+}
 </script>
 
 <template>
-  <div class="song-row" :class="{ selected, selectable }">
+  <div
+    class="song-row"
+    :class="{ selected, selectable }"
+    draggable="true"
+    @dragstart="handleDragStart"
+  >
     <span
       v-if="selectable"
       class="song-check"
