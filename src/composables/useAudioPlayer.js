@@ -16,6 +16,47 @@ import { useToast } from "@/composables/useToast";
 
 const toast = useToast();
 
+// ===== 播放进度记忆（按歌曲记住上次听到哪） =====
+const POSITION_KEY = "zhuplay:play-positions";
+const MIN_RESUME_SECONDS = 10;
+
+let positions = {};
+let positionsTimer = null;
+let pendingResume = 0;
+
+try {
+  positions = JSON.parse(localStorage.getItem(POSITION_KEY) || "{}") || {};
+} catch {
+  positions = {};
+}
+
+function persistPositions() {
+  if (positionsTimer) clearTimeout(positionsTimer);
+  positionsTimer = setTimeout(() => {
+    positionsTimer = null;
+    try {
+      localStorage.setItem(POSITION_KEY, JSON.stringify(positions));
+    } catch (error) {
+      console.warn("播放进度保存失败：", error);
+    }
+  }, 800);
+}
+
+function rememberPosition(store, song) {
+  if (!song || !store) return;
+
+  const time = store.currentTime;
+  if (!(time > MIN_RESUME_SECONDS)) return;
+
+  if (store.duration && time > store.duration - MIN_RESUME_SECONDS) {
+    delete positions[song.id];
+  } else {
+    positions[song.id] = Math.floor(time);
+  }
+
+  persistPositions();
+}
+
 // 模块级单例
 let instance = null;
 
@@ -76,6 +117,9 @@ function createInstance() {
 
     playerStore.setQueue(context, startIndex);
 
+    // 切歌前先记住上一首的进度
+    if (currentSong.value) rememberPosition(playerStore, currentSong.value);
+
     musicStore.addRecentSong(song);
     // 听歌统计：记录一次播放
     useListeningStats().recordPlay(song);
@@ -89,6 +133,9 @@ function createInstance() {
     playerStore.setCurrentSong(song);
     // 播放地址按需创建（缓存最近 3 首，超出自动回收）
     audioService.setSource(getSongAudioUrl(song));
+
+    // 下次 loadedmetadata 时跳回上次位置（见 handleLoadedMetadata）
+    pendingResume = Number(positions[song.id]) || 0;
 
     audioService
       .play()
@@ -154,6 +201,8 @@ function createInstance() {
     } else {
       audioService.pause();
       playerStore.setPlaying(false);
+      // 暂停时记住进度
+      if (currentSong.value) rememberPosition(playerStore, currentSong.value);
     }
   }
 
@@ -171,6 +220,14 @@ function createInstance() {
   }
   function handleLoadedMetadata() {
     playerStore.setDuration(audio.duration || 0);
+
+    // 续播：上次听到的位置（离结尾太近则不恢复）
+    if (pendingResume > 0 && audio.duration && pendingResume < audio.duration - 5) {
+      audioService.seek(pendingResume);
+      playerStore.setCurrentTime(pendingResume);
+    }
+
+    pendingResume = 0;
   }
   function handleEnded() {
     if (repeatMode.value === "one") {

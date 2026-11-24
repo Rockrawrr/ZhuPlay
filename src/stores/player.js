@@ -142,6 +142,15 @@ export const usePlayerStore = defineStore("player", {
     },
 
     // 从队列中移除某首歌（如删除歌曲），并修正当前下标
+    // 追加到队列末尾；已经在队列里的歌不重复添加
+    appendToQueue(song) {
+      if (!song) return false;
+      if (this.queue.some((item) => item.id === song.id)) return false;
+
+      this.queue = [...this.queue, song];
+      return true;
+    },
+
     removeFromQueue(songId) {
       const currentId = this.currentSong?.id;
       this.queue = this.queue.filter((song) => song.id !== songId);

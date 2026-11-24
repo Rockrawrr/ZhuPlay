@@ -9,6 +9,7 @@ import {
   FolderOpen,
   Heart,
   Info,
+  ListEnd,
   ListPlus,
   Play,
   SkipForward,
@@ -87,6 +88,17 @@ export function useSongMenu() {
         action: () => {
           playerStore.insertNext(song);
           toast.success("已设为下一首播放");
+        },
+      },
+      {
+        id: "append-to-queue",
+        label: "加入队列末尾",
+        icon: ListEnd,
+        action: () => {
+          const added = playerStore.appendToQueue(song);
+          toast[added ? "success" : "info"](
+            added ? "已加入队列末尾" : "这首歌已经在队列里了",
+          );
         },
       },
       { type: "separator" },
