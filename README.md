@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/Rockrawrr/ZhuPlay/releases/tag/v1.2.6">
-    <img src="https://img.shields.io/badge/Download-ZhuPlay%20v1.2.5-blue?style=for-the-badge&logo=windows" alt="Download ZhuPlay">
+    <img src="https://img.shields.io/badge/Download-ZhuPlay%20v1.2.6-blue?style=for-the-badge&logo=windows" alt="Download ZhuPlay">
   </a>
 </p>
 
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Rockrawrr/ZhuPlay/releases/tag/v1.2.5">下载 Windows 桌面版 v1.2.5</a>
+  <a href="https://github.com/Rockrawrr/ZhuPlay/releases/tag/v1.2.6">下载 Windows 桌面版 v1.2.6</a>
   ·
   <a href="docs/TECHNICAL.md">技术文档</a>
 </p>
