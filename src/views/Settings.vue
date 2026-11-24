@@ -16,6 +16,10 @@ import { useConfirm } from "@/composables/useConfirm";
 import { formatBytes } from "@/utils/format";
 import { pathOnly, setPathOnly } from "@/utils/appSettings";
 import { exportBackup, importBackup } from "@/services/backupService";
+import {
+  exportFullBackup,
+  importFullBackup,
+} from "@/services/fullBackupService";
 import PageHeader from "@/components/common/PageHeader.vue";
 import DuplicateCleanupDialog from "@/components/overlays/DuplicateCleanupDialog.vue";
 
@@ -129,6 +133,76 @@ async function handleReleaseStoredAudio() {
     `已释放 ${released} 首${skipped > 0 ? `，${skipped} 首无路径跳过` : ""}`,
   );
   await loadStorage();
+}
+
+// ===== 完整备份（含音频）=====
+
+const backupProgress = ref({ active: false, phase: "", done: 0, total: 0 });
+
+const backupPercent = computed(() => {
+  const { done, total } = backupProgress.value;
+  if (!total) return 0;
+
+  return Math.min(100, Math.round((done / total) * 100));
+});
+
+const backupLabel = computed(() => {
+  if (backupProgress.value.phase === "scan") return "正在读取音频";
+  if (backupProgress.value.phase === "write") return "正在写入备份";
+  return "正在导入备份";
+});
+
+function updateBackupProgress(progress) {
+  backupProgress.value = { active: true, ...progress };
+}
+
+async function handleExportFullBackup() {
+  try {
+    backupProgress.value = {
+      active: true,
+      phase: "scan",
+      done: 0,
+      total: songs.value.length,
+    };
+
+    const result = await exportFullBackup(updateBackupProgress);
+    if (!result) return;
+
+    toast.success(
+      `已导出 ${result.songs} 首（${formatBytes(result.bytes)}）${
+        result.withoutAudio > 0
+          ? `，${result.withoutAudio} 首没有可用音频`
+          : ""
+      }`,
+    );
+  } catch (error) {
+    console.error("完整备份导出失败：", error);
+    toast.error(`导出失败：${error.message || "未知错误"}`);
+  } finally {
+    backupProgress.value.active = false;
+  }
+}
+
+async function handleImportFullBackup() {
+  try {
+    backupProgress.value = { active: true, phase: "import", done: 0, total: 0 };
+
+    const result = await importFullBackup(updateBackupProgress);
+    if (!result) return;
+
+    toast.success(
+      `已恢复 ${result.imported} 首${
+        result.skipped > 0 ? `，跳过 ${result.skipped} 首重复` : ""
+      }${result.missing > 0 ? `，${result.missing} 首缺少音频` : ""}`,
+    );
+
+    await loadStorage();
+  } catch (error) {
+    console.error("完整备份导入失败：", error);
+    toast.error(`导入失败：${error.message || "未知错误"}`);
+  } finally {
+    backupProgress.value.active = false;
+  }
 }
 
 // ===== 数据目录与备份 =====
@@ -409,6 +483,40 @@ async function handleClearAll() {
           </div>
           <button class="ghost-button" @click="handleImportBackup">导入</button>
         </div>
+
+        <div v-if="isDesktop" class="action-row">
+          <div class="action-text">
+            <strong>导出完整备份（含音频）</strong>
+            <span>
+              单个 .zhuplay 文件，包含全部歌曲音频；换电脑或发给朋友用，
+              体积约等于音频总量
+            </span>
+          </div>
+          <button
+            class="ghost-button"
+            :disabled="backupProgress.active"
+            @click="handleExportFullBackup"
+          >
+            导出
+          </button>
+        </div>
+
+        <div v-if="isDesktop" class="action-row">
+          <div class="action-text">
+            <strong>导入完整备份</strong>
+            <span>
+              恢复音频歌曲，并合并歌单 / 收藏 / 统计；
+              已存在的同名同大小歌曲会跳过
+            </span>
+          </div>
+          <button
+            class="ghost-button"
+            :disabled="backupProgress.active"
+            @click="handleImportFullBackup"
+          >
+            导入
+          </button>
+        </div>
       </section>
 
       <!-- 数据管理 -->
@@ -495,6 +603,27 @@ async function handleClearAll() {
         </div>
 
         <span class="migrate-hint">请勿关闭应用，完成后会自动重启</span>
+      </div>
+    </div>
+
+    <!-- 完整备份进度 -->
+    <div v-if="backupProgress.active" class="migrate-mask">
+      <div class="migrate-card">
+        <h3>{{ backupLabel }}</h3>
+        <p>
+          {{ backupProgress.done }} / {{ backupProgress.total || "…" }}（{{
+            backupPercent
+          }}%）
+        </p>
+
+        <div class="migrate-bar">
+          <div
+            class="migrate-fill"
+            :style="{ width: `${backupPercent}%` }"
+          ></div>
+        </div>
+
+        <span class="migrate-hint">大文件会慢一些，请不要关闭应用</span>
       </div>
     </div>
 

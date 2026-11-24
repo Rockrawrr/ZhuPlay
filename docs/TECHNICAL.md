@@ -166,6 +166,24 @@ Chromium 把大 Blob 单独放 `.indexeddb.blob`，记录放 `.leveldb`。
   返回释放条数；没有 `filePath`（Web 端导入）的歌会跳过
 - 注意：IndexedDB 的 LevelDB 不会立刻回收已删除 Blob 的空间，磁盘占用下降可能有延迟
 
+### 5.4.3 完整备份（含音频）
+
+设置 → 数据与备份里的「导出 / 导入完整备份」生成单个 `.zhuplay` 文件：
+
+```
+"ZHUPBACKUP1\n" | uint32 头长度 | JSON 头 | 音频字节依次拼接
+```
+
+- JSON 头 = `snapshot`（歌曲元数据 / 歌单 / 收藏 / 最近播放 / 统计）+ `entries`
+  （id、文件名、大小、音频字节数，顺序与后面的音频一致）
+- 写入：渲染端 `fullBackupService` 逐首取 Blob（`song.file` 或按路径读），
+  按 4 MB 分块调 `fullbackup:write`，主进程写入流并在 `write()` 返回 false 时等 `drain`（背压）
+- 读取：主进程 `fullbackup:open` 校验魔数、解析头部并返回 `audioOffset`；
+  `fullbackup:read-audio` 按偏移读取单首音频
+- 导入：先按「文件名 + 大小」跳过已存在的歌，其余用 `createSong` 还原并批量写入，
+  最后调 `applySnapshot` 合并歌单 / 收藏 / 最近播放 / 统计（旧 id 通过指纹映射）
+- 单首音频上限 512 MB；路径模式（`filePath`）的歌导出时会按需读取原文件，文件丢失则该首按「无音频」处理
+
 ---
 
 ## 6. 核心流程

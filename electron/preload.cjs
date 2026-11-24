@@ -35,6 +35,20 @@ contextBridge.exposeInMainWorld("zhuplayDesktop", {
   // 按路径读取音频（「仅记录路径」模式播放时用），失败返回 null
   readAudioFile: (filePath) => ipcRenderer.invoke("fs:read-audio", filePath),
 
+  // ===== 完整备份（含音频）=====
+  chooseFullBackupTarget: () =>
+    ipcRenderer.invoke("fullbackup:choose-target"),
+  chooseFullBackupFile: () => ipcRenderer.invoke("fullbackup:choose-file"),
+  createFullBackup: (targetPath) =>
+    ipcRenderer.invoke("fullbackup:create", targetPath),
+  writeFullBackup: (token, chunk) =>
+    ipcRenderer.invoke("fullbackup:write", token, chunk),
+  finishFullBackup: (token) => ipcRenderer.invoke("fullbackup:finish", token),
+  openFullBackup: (filePath) =>
+    ipcRenderer.invoke("fullbackup:open", filePath),
+  readFullBackupAudio: (filePath, offset, size) =>
+    ipcRenderer.invoke("fullbackup:read-audio", filePath, offset, size),
+
   // 开机自启开关
   getOpenAtLogin: () => ipcRenderer.invoke("app:get-open-at-login"),
   setOpenAtLogin: (enabled) =>

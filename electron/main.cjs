@@ -24,6 +24,7 @@ const {
 } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const { pathToFileURL } = require("node:url");
 
 const APP_SCHEME = "app";
@@ -723,6 +724,164 @@ if (!app.requestSingleInstanceLock()) {
         return null;
       }
     });
+
+    // ===== 完整备份（含音频）：自定义容器 .zhuplay =====
+    // 结构：MAGIC(12) + 4 字节头长度 + JSON 头 + 顺序拼接的音频字节
+    const FULL_BACKUP_MAGIC = "ZHUPBACKUP1\n";
+    const fullBackupSessions = new Map();
+
+    function writeToStream(stream, buffer) {
+      return new Promise((resolve, reject) => {
+        const onError = (error) => {
+          stream.off("error", onError);
+          reject(error);
+        };
+
+        stream.once("error", onError);
+
+        if (stream.write(buffer)) {
+          stream.off("error", onError);
+          resolve();
+          return;
+        }
+
+        stream.once("drain", () => {
+          stream.off("error", onError);
+          resolve();
+        });
+      });
+    }
+
+    ipcMain.handle("fullbackup:choose-target", async () => {
+      const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+        title: "导出完整备份（含音频）",
+        defaultPath: path.join(
+          app.getPath("documents"),
+          `zhuplay-full-${new Date().toISOString().slice(0, 10)}.zhuplay`,
+        ),
+        filters: [{ name: "ZhuPlay 完整备份", extensions: ["zhuplay"] }],
+      });
+
+      return canceled || !filePath ? "" : filePath;
+    });
+
+    ipcMain.handle("fullbackup:choose-file", async () => {
+      const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+        title: "选择 ZhuPlay 完整备份",
+        properties: ["openFile"],
+        filters: [{ name: "ZhuPlay 完整备份", extensions: ["zhuplay"] }],
+      });
+
+      return canceled || filePaths.length === 0 ? "" : filePaths[0];
+    });
+
+    ipcMain.handle("fullbackup:create", async (_event, targetPath) => {
+      if (typeof targetPath !== "string" || targetPath.length === 0) {
+        throw new Error("无效的备份路径");
+      }
+
+      const stream = fs.createWriteStream(targetPath);
+      await new Promise((resolve, reject) => {
+        stream.once("open", resolve);
+        stream.once("error", reject);
+      });
+
+      const token = crypto.randomUUID();
+      fullBackupSessions.set(token, { stream, bytes: 0 });
+      await writeToStream(stream, Buffer.from(FULL_BACKUP_MAGIC, "utf8"));
+
+      return token;
+    });
+
+    ipcMain.handle("fullbackup:write", async (_event, token, chunk) => {
+      const session = fullBackupSessions.get(token);
+      if (!session) throw new Error("备份会话已失效");
+
+      const buffer = Buffer.from(chunk);
+      await writeToStream(session.stream, buffer);
+      session.bytes += buffer.length;
+
+      return session.bytes;
+    });
+
+    ipcMain.handle("fullbackup:finish", async (_event, token) => {
+      const session = fullBackupSessions.get(token);
+      if (!session) throw new Error("备份会话已失效");
+
+      fullBackupSessions.delete(token);
+
+      await new Promise((resolve, reject) => {
+        session.stream.once("error", reject);
+        session.stream.end(resolve);
+      });
+
+      return session.bytes;
+    });
+
+    // 读取备份头（校验魔数 + 解析 JSON），返回音频数据起始偏移
+    ipcMain.handle("fullbackup:open", async (_event, filePath) => {
+      if (typeof filePath !== "string" || filePath.length === 0) return null;
+
+      const handle = await fs.promises.open(filePath, "r");
+
+      try {
+        const magicBuffer = Buffer.alloc(FULL_BACKUP_MAGIC.length);
+        await handle.read(magicBuffer, 0, magicBuffer.length, 0);
+
+        if (magicBuffer.toString("utf8") !== FULL_BACKUP_MAGIC) return null;
+
+        const lengthBuffer = Buffer.alloc(4);
+        await handle.read(lengthBuffer, 0, 4, magicBuffer.length);
+
+        const headerLength = lengthBuffer.readUInt32LE(0);
+        if (headerLength === 0 || headerLength > 64 * 1024 * 1024) return null;
+
+        const headerBuffer = Buffer.alloc(headerLength);
+        await handle.read(
+          headerBuffer,
+          0,
+          headerLength,
+          magicBuffer.length + 4,
+        );
+
+        const header = JSON.parse(headerBuffer.toString("utf8"));
+        const audioOffset = magicBuffer.length + 4 + headerLength;
+
+        return { header, audioOffset };
+      } catch {
+        return null;
+      } finally {
+        await handle.close();
+      }
+    });
+
+    ipcMain.handle(
+      "fullbackup:read-audio",
+      async (_event, filePath, offset, size) => {
+        if (
+          typeof filePath !== "string" ||
+          !Number.isFinite(offset) ||
+          !Number.isFinite(size) ||
+          offset < 0 ||
+          size <= 0 ||
+          size > 512 * 1024 * 1024
+        ) {
+          return null;
+        }
+
+        const handle = await fs.promises.open(filePath, "r");
+
+        try {
+          const buffer = Buffer.alloc(size);
+          const { bytesRead } = await handle.read(buffer, 0, size, offset);
+          return bytesRead === size ? buffer : buffer.subarray(0, bytesRead);
+        } catch {
+          return null;
+        } finally {
+          await handle.close();
+        }
+      },
+    );
 
     // 桌面端不需要默认菜单（保留快捷键用 autoHideMenuBar）
     Menu.setApplicationMenu(null);
