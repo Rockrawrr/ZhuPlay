@@ -84,7 +84,8 @@ function createInstance() {
 
   // 播放歌曲
   // playList：本次播放所在的列表，决定上一首/下一首的边界
-  async function playSong(song, playList = null) {
+  // resetProgress：切歌（上一首 / 下一首）时从头播放，不恢复上次进度
+  async function playSong(song, playList = null, { resetProgress = false } = {}) {
     if (!song) return;
 
     const context = resolveQueue(song, playList);
@@ -132,7 +133,14 @@ function createInstance() {
 
     playerStore.setCurrentSong(song);
     // 下次 loadedmetadata 时跳回上次位置（见 handleLoadedMetadata）
-    pendingResume = Number(positions[song.id]) || 0;
+    // 上一首 / 下一首属于"切歌"，必须从 0 开始，并清掉这首歌的旧进度
+    if (resetProgress) {
+      delete positions[song.id];
+      persistPositions();
+      pendingResume = 0;
+    } else {
+      pendingResume = Number(positions[song.id]) || 0;
+    }
 
     // 播放地址按需创建（缓存最近 3 首，超出自动回收）
     // 有 File 直接建 URL；「仅保存路径」的歌需要先通过主进程读文件
@@ -180,7 +188,7 @@ function createInstance() {
       previousIndex = queue.length - 1;
     }
 
-    playSong(queue[previousIndex], queue);
+    playSong(queue[previousIndex], queue, { resetProgress: true });
   }
 
   // 播放下一首
@@ -204,7 +212,7 @@ function createInstance() {
       }
     }
 
-    playSong(queue[nextIndex], queue);
+    playSong(queue[nextIndex], queue, { resetProgress: true });
   }
 
   // 播放 / 暂停
