@@ -11,6 +11,7 @@ import { useNavigation } from "@/composables/useNavigation";
 import HomeAlbumGrid from "@/components/home/HomeAlbumGrid.vue";
 import HomeRecentList from "@/components/home/HomeRecentList.vue";
 import { currentGreeting } from "@/utils/greeting";
+import { appReady } from "@/app/appState";
 
 const albums = [
   { id: 1, title: "最近播放", description: "继续聆听你的音乐" },
@@ -197,7 +198,21 @@ function playRecent(song) {
       </div>
     </section>
 
-    <section class="recommend-section">
+    <!-- 首屏骨架：数据恢复完成前显示占位，避免空状态闪一下 -->
+    <div v-if="!appReady" class="home-skeleton">
+      <div class="skeleton-header"></div>
+      <div class="skeleton-grid">
+        <div v-for="index in 6" :key="index" class="skeleton-card"></div>
+      </div>
+
+      <div class="skeleton-header skeleton-header-wide"></div>
+      <div class="skeleton-rows">
+        <div v-for="index in 4" :key="index" class="skeleton-row"></div>
+      </div>
+    </div>
+
+    <template v-else>
+      <section class="recommend-section">
       <div class="section-header">
         <h2>为你推荐</h2>
         <button @click="navigateTo('recent-imported')">查看全部</button>
@@ -243,6 +258,7 @@ function playRecent(song) {
       @clear="clearRecentSongs"
       @play="playRecent"
     />
+    </template>
   </main>
 </template>
 
@@ -260,8 +276,7 @@ function playRecent(song) {
     #121212;
 }
 
-.top-bar {
-  height: 76px;
+.top-bar {  height: 76px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -390,6 +405,76 @@ function playRecent(song) {
   font-weight: 750;
   margin: 22px 0;
   color: #fff;
+}
+
+/* ===== 首屏骨架屏 ===== */
+
+.home-skeleton {
+  padding-top: 8px;
+}
+
+.skeleton-header {
+  width: 160px;
+  height: 22px;
+  margin: 22px 0 18px;
+  border-radius: 6px;
+}
+
+.skeleton-header-wide {
+  width: 120px;
+  margin-top: 34px;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.skeleton-card {
+  aspect-ratio: 1 / 1.15;
+  border-radius: 8px;
+}
+
+.skeleton-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-row {
+  height: 56px;
+  border-radius: 8px;
+}
+
+.skeleton-header,
+.skeleton-card,
+.skeleton-row {
+  background: linear-gradient(90deg, #1b1b1b 25%, #262626 37%, #1b1b1b 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (max-width: 1100px) {
+  .skeleton-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .skeleton-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .recommend-section {

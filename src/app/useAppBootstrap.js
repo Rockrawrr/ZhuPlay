@@ -14,6 +14,7 @@ import { useQueuePersistence } from "@/app/useQueuePersistence";
 import { useVolume } from "@/composables/useVolume";
 import { useToast } from "@/composables/useToast";
 import { STORAGE_KEYS } from "@/storage/keys";
+import { appReady } from "@/app/appState";
 
 export function useAppBootstrap() {
   const musicStore = useMusicStore();
@@ -56,11 +57,16 @@ export function useAppBootstrap() {
   }
 
   onMounted(async () => {
-    await initializeMusic();
-    // 曲库恢复后再还原队列：队列里的歌曲要能在 songs 里按 id 找到
-    await restoreQueue();
-    // 音量与曲库无关，单独恢复
-    await restoreVolume();
+    try {
+      await initializeMusic();
+      // 曲库恢复后再还原队列：队列里的歌曲要能在 songs 里按 id 找到
+      await restoreQueue();
+      // 音量与曲库无关，单独恢复
+      await restoreVolume();
+    } finally {
+      // 无论恢复成功与否都结束骨架屏，否则页面会一直显示占位
+      appReady.value = true;
+    }
   });
 
   onUnmounted(() => {

@@ -345,9 +345,69 @@ export function useMusicActions() {
     toast.success(`已删除 ${uniqueIds.length} 首歌曲`);
   }
 
+  // 手动导入歌词：选一个 .lrc / .txt，写入歌曲并落库
+  async function importLyrics(songId) {
+    const song = songs.value.find((item) => item.id === songId);
+    if (!song) return false;
+
+    const text = await pickLyricsFile();
+    if (!text) return false;
+
+    const updated = musicStore.updateSong(songId, { lyrics: text });
+    if (!updated) return false;
+
+    try {
+      await musicStorage.saveSong(updated);
+    } catch (error) {
+      console.error("歌词保存失败：", error);
+      toast.error("歌词保存失败，刷新后可能丢失");
+      return false;
+    }
+
+    toast.success("已导入歌词");
+    return true;
+  }
+
+  function pickLyricsFile() {
+    return new Promise((resolve) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".lrc,.txt,text/plain";
+      input.style.display = "none";
+      document.body.appendChild(input);
+
+      const cleanup = () => input.remove();
+
+      input.addEventListener("change", async () => {
+        const file = input.files?.[0];
+        cleanup();
+        if (!file) return resolve(null);
+
+        if (file.size > 1024 * 1024) {
+          toast.error("歌词文件过大（上限 1 MB）");
+          return resolve(null);
+        }
+
+        try {
+          resolve(await file.text());
+        } catch {
+          resolve(null);
+        }
+      });
+
+      input.addEventListener("cancel", () => {
+        cleanup();
+        resolve(null);
+      });
+
+      input.click();
+    });
+  }
+
   return {
     importSongs,
     cancelImport,
+    importLyrics,
     toggleFavorite,
     clearRecentSongs,
     removeRecentSong,

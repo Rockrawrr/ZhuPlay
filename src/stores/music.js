@@ -31,10 +31,25 @@ export const useMusicStore = defineStore("music", {
     setSongs(songs) {
       this.songs = Array.isArray(songs) ? songs : [];
     },
-    addSongs(newSongs) {
-      if (!Array.isArray(newSongs) || newSongs.length === 0) return;
+    addSongs(newSongs) {      if (!Array.isArray(newSongs) || newSongs.length === 0) return;
       this.songs.push(...newSongs);
     },
+    // 更新单首歌曲的部分字段（歌词、标签等）
+    updateSong(songId, patch) {
+      const index = this.songs.findIndex((song) => song.id === songId);
+      if (index === -1) return null;
+
+      const updated = { ...this.songs[index], ...patch };
+      this.songs[index] = updated;
+
+      // 最近播放里存的是完整对象副本，同步一下
+      this.recentSongs = this.recentSongs.map((song) =>
+        song.id === songId ? { ...song, ...patch } : song,
+      );
+
+      return updated;
+    },
+
     // 删除歌曲：同时清理音乐库、收藏、最近播放三处引用
     removeSong(songId) {
       this.songs = this.songs.filter((s) => s.id !== songId);

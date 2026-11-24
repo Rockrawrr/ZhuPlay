@@ -6,6 +6,7 @@
  */
 import {
   Copy,
+  FileText,
   FolderOpen,
   Heart,
   Info,
@@ -34,7 +35,8 @@ export function useSongMenu() {
   const playerStore = usePlayerStore();
 
   const { playSong } = useAudioPlayer();
-  const { toggleFavorite, removeSong, removeRecentSong } = useMusicActions();
+  const { toggleFavorite, removeSong, removeRecentSong, importLyrics } =
+    useMusicActions();
   const { openPlaylistPicker } = usePlaylistPicker();
   const { openSongInfo } = useSongInfo();
   const { confirm } = useConfirm();
@@ -120,6 +122,12 @@ export function useSongMenu() {
         label: "歌曲信息",
         icon: Info,
         action: () => openSongInfo(song),
+      },
+      {
+        id: "import-lyrics",
+        label: "导入歌词…",
+        icon: FileText,
+        action: () => importLyrics(song.id),
       },
       {
         id: "copy",

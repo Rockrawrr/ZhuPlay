@@ -18,6 +18,7 @@ const Search = () => import("@/views/Search.vue");
 const Settings = () => import("@/views/Settings.vue");
 const Stats = () => import("@/views/Stats.vue");
 const SmartPlaylist = () => import("@/views/SmartPlaylist.vue");
+const Collections = () => import("@/views/Collections.vue");
 
 export const routes = [
   { path: "/", name: "home", component: Home },
@@ -31,6 +32,8 @@ export const routes = [
   },
   // 歌单详情用可选参数：/playlists 是列表，/playlists/xxx 是详情
   { path: "/playlists/:id?", name: "playlists", component: Playlists },
+  // 歌手 / 专辑聚合：/collections/artists · /collections/albums（带 name 进详情）
+  { path: "/collections/:kind/:name?", name: "collections", component: Collections },
   { path: "/search", name: "search", component: Search },
   // 智能歌单：/smart/frequent（最常播放）· /smart/recent（最近添加）
   { path: "/smart/:type", name: "smart", component: SmartPlaylist },

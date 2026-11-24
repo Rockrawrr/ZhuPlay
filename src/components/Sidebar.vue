@@ -3,11 +3,13 @@
 // 注意：「搜索」入口目前是占位，等功能实现后再接上
 import {
   BarChart3,
+  Disc3,
   Home,
   Search,
   Library,
   Heart,
   ListMusic,
+  Mic2,
   Plus,
   Music2,
   Clock3,
@@ -146,6 +148,26 @@ async function handleCreatePlaylist() {
         @click.prevent="navigateTo('favorites')"
       >
         <Heart :size="21" /><span>喜欢的音乐</span>
+      </a>
+      <a
+        class="nav-item"
+        :class="{
+          active: currentPage === 'collections' && params.kind === 'artists',
+        }"
+        href="#"
+        @click.prevent="navigateTo('collections', { kind: 'artists' })"
+      >
+        <Mic2 :size="21" /><span>歌手</span>
+      </a>
+      <a
+        class="nav-item"
+        :class="{
+          active: currentPage === 'collections' && params.kind === 'albums',
+        }"
+        href="#"
+        @click.prevent="navigateTo('collections', { kind: 'albums' })"
+      >
+        <Disc3 :size="21" /><span>专辑</span>
       </a>
       <a
         class="nav-item"

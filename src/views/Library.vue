@@ -27,6 +27,7 @@ import { usePlaylistPicker } from "@/composables/useOverlays";
 import { useConfirm } from "@/composables/useConfirm";
 import { useImportStatus } from "@/composables/useImportStatus";
 import { formatBytes } from "@/utils/format";
+import { appReady } from "@/app/appState";
 
 const musicStore = useMusicStore();
 const { songs, favoriteSongs } = storeToRefs(musicStore);
@@ -383,8 +384,13 @@ function onDrop(event) {
       </div>
     </div>
 
+    <!-- 首屏骨架：数据恢复完成前先占位，避免空状态闪一下 -->
+    <div v-if="!appReady" class="song-skeleton">
+      <div v-for="index in 8" :key="index" class="skeleton-line"></div>
+    </div>
+
     <!-- 空状态 -->
-    <div v-if="songs.length === 0" class="empty-library">
+    <div v-else-if="songs.length === 0" class="empty-library">
       <div class="empty-card">
         <div class="empty-badge">
           <Music2 :size="38" />
@@ -562,8 +568,33 @@ function onDrop(event) {
   color: #fff;
 }
 
-/* 导入进度 */
-.import-progress {
+/* 首屏骨架 */
+.song-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.skeleton-line {
+  height: 56px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #1b1b1b 25%, #262626 37%, #1b1b1b 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* 导入进度 */.import-progress {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
