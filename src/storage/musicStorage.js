@@ -57,8 +57,29 @@ async function saveSong(song) {
 
   // 清空歌曲与零散音乐数据（设置页“清空全部数据”使用）
   async function clearAll() {
-    await adapter.clear('songs')
-    await adapter.clear('musicData')
+    await adapter.transaction(['songs', 'musicData', 'playlists'], (stores) => {
+      stores.songs.clear()
+      stores.musicData.clear()
+      stores.playlists.clear()
+    })
+  }
+
+  async function clearSongsAndMusicData(playlistRows = []) {
+    await adapter.transaction(['songs', 'musicData', 'playlists'], (stores) => {
+      stores.songs.clear()
+      stores.musicData.clear()
+      stores.playlists.clear()
+      for (const playlist of playlistRows) stores.playlists.put(playlist)
+    })
+  }
+
+  async function saveBackupMerge({ favorites, recentSongs, stats, playlists }) {
+    await adapter.transaction(['musicData', 'playlists'], (stores) => {
+      stores.musicData.put({ key: 'favorites', value: favorites })
+      stores.musicData.put({ key: 'recentSongIds', value: recentSongs })
+      if (stats) stores.musicData.put({ key: 'listeningStats', value: stats })
+      for (const playlist of playlists) stores.playlists.put(playlist)
+    })
   }
 
   return {
@@ -69,5 +90,7 @@ async function saveSong(song) {
     saveMusicData,
     getMusicData,
     clearAll
+    ,clearSongsAndMusicData
+    ,saveBackupMerge
   }
 }

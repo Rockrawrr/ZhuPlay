@@ -238,7 +238,7 @@ async function handleClearAll() {
   if (!confirmed) return;
 
   try {
-    await Promise.all([musicStorage.clearAll(), playlistStorage.clearAll()]);
+    await musicStorage.clearAll();
     window.location.reload();
   } catch (error) {
     console.error("清空数据失败：", error);
