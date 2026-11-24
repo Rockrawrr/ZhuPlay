@@ -1,7 +1,7 @@
 # ZhuPlay
 
 <p align="center">
-  <a href="https://github.com/Rockrawrr/ZhuPlay/releases/tag/v1.2.5">
+  <a href="https://github.com/Rockrawrr/ZhuPlay/releases/tag/v1.2.6">
     <img src="https://img.shields.io/badge/Download-ZhuPlay%20v1.2.5-blue?style=for-the-badge&logo=windows" alt="Download ZhuPlay">
   </a>
 </p>
