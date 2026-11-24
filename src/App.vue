@@ -12,6 +12,7 @@ import AddToPlaylistDialog from '@/components/overlays/AddToPlaylistDialog.vue'
 import { usePlaylistPicker } from '@/composables/useOverlays'
 import { useMediaSession } from '@/composables/useMediaSession'
 import { useListeningStats } from '@/composables/useListeningStats'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 
 const { state: pickerState, closePlaylistPicker } = usePlaylistPicker()
 
@@ -20,6 +21,8 @@ useAppBootstrap()
 useMediaSession()
 // 听歌统计：加载历史并跟随播放进度累计
 useListeningStats().initStats()
+// 全局快捷键：空格播放、左右快进退、Ctrl+F 搜索
+useKeyboardShortcuts()
 </script>
 
 <template>

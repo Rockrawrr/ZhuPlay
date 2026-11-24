@@ -12,6 +12,9 @@ import { getAudioService, getMusicStorage } from "@/app/services";
 import { STORAGE_KEYS } from "@/storage/keys";
 import { getSongAudioUrl } from "@/services/assetUrls";
 import { useListeningStats } from "@/composables/useListeningStats";
+import { useToast } from "@/composables/useToast";
+
+const toast = useToast();
 
 // 模块级单例
 let instance = null;
@@ -62,6 +65,7 @@ function createInstance() {
           .catch((error) => {
             console.error("播放失败：", error);
             playerStore.setPlaying(false);
+            toast.error("无法播放这首歌，文件可能已损坏或已被移动");
           });
         return;
       }
@@ -92,6 +96,7 @@ function createInstance() {
       .catch((error) => {
         console.error("播放失败：", error);
         playerStore.setPlaying(false);
+        toast.error("无法播放这首歌，文件可能已损坏或已被移动");
       });
   }
 
@@ -144,6 +149,7 @@ function createInstance() {
         .catch((error) => {
           console.error("播放失败：", error);
           playerStore.setPlaying(false);
+          toast.error("无法播放这首歌，文件可能已损坏或已被移动");
         });
     } else {
       audioService.pause();
@@ -172,6 +178,7 @@ function createInstance() {
       audioService.play().catch((error) => {
         console.error("单曲循环播放失败：", error);
         playerStore.setPlaying(false);
+        toast.error("无法循环播放这首歌");
       });
       return;
     }

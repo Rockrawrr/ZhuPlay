@@ -7,6 +7,23 @@ import { openDatabase } from "../database";
 
 // IndexedDB 操作适配器
 export function createIndexedDBAdapter() {
+  // 在多个对象仓库上执行同一个原子事务。
+  async function transaction(storeNames, operation) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeNames, "readwrite");
+      try {
+        operation(Object.fromEntries(storeNames.map((name) => [name, tx.objectStore(name)])));
+      } catch (error) {
+        tx.abort();
+        reject(error);
+        return;
+      }
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error || new Error("IndexedDB transaction aborted"));
+    });
+  }
   // 保存数据
   async function put(storeName, data) {
     const db = await openDatabase();
@@ -162,6 +179,7 @@ export function createIndexedDBAdapter() {
   }
 
   return {
+    transaction,
     put,
     putMany,
     get,

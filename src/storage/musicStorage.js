@@ -23,6 +23,18 @@ async function saveSong(song) {
   await adapter.put('songs', songData)
 }
 
+  // 批量保存（同一个事务）：导入一批文件后一次性写入
+  async function saveSongs(songs) {
+    const rows = (songs ?? []).map((song) => {
+      const { url, coverUrl, ...songData } = song
+      return songData
+    })
+
+    if (rows.length === 0) return
+
+    await adapter.putMany('songs', rows)
+  }
+
   // 获取全部歌曲
   // 不再为每首歌创建 objectURL：上万首时会占用大量内存，
   // 播放地址由 assetUrls 按需创建，封面地址由 SongCover 组件按需创建
@@ -57,17 +69,42 @@ async function saveSong(song) {
 
   // 清空歌曲与零散音乐数据（设置页“清空全部数据”使用）
   async function clearAll() {
-    await adapter.clear('songs')
-    await adapter.clear('musicData')
+    await adapter.transaction(['songs', 'musicData', 'playlists'], (stores) => {
+      stores.songs.clear()
+      stores.musicData.clear()
+      stores.playlists.clear()
+    })
+  }
+
+  async function clearSongsAndMusicData(playlistRows = []) {
+    await adapter.transaction(['songs', 'musicData', 'playlists'], (stores) => {
+      stores.songs.clear()
+      stores.musicData.clear()
+      stores.playlists.clear()
+      for (const playlist of playlistRows) stores.playlists.put(playlist)
+    })
+  }
+
+  async function saveBackupMerge({ favorites, recentSongs, stats, playlists }) {
+    await adapter.transaction(['musicData', 'playlists'], (stores) => {
+      stores.musicData.put({ key: 'favorites', value: favorites })
+      stores.musicData.put({ key: 'recentSongIds', value: recentSongs })
+      if (stats) stores.musicData.put({ key: 'listeningStats', value: stats })
+      for (const playlist of playlists) stores.playlists.put(playlist)
+    })
   }
 
   return {
     saveSong,
+    saveSongs,
     getSongs,
     deleteSong,
     deleteSongs,
     saveMusicData,
     getMusicData,
-    clearAll
+    clearAll,
+    clearSongsAndMusicData,
+    saveBackupMerge
   }
 }
+

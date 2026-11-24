@@ -17,6 +17,7 @@ import { STORAGE_KEYS } from "@/storage/keys";
 import { releaseAllAudioUrls, releaseSongAudioUrl } from "@/services/assetUrls";
 import { persistSafely } from "@/utils/persist";
 import { filterDuplicateFiles } from "@/utils/dedupe";
+import { importState } from "@/composables/useImportStatus";
 
 export function useMusicActions() {
   const musicStore = useMusicStore();
@@ -43,6 +44,38 @@ export function useMusicActions() {
     }
   }
 
+  // 解析单个文件为歌曲对象（不含落库）
+  async function buildSong(file) {
+    let song;
+
+    try {
+      const metadata = await parseMusicMetadata(file);
+      song = createSong(file, metadata);
+    } catch (error) {
+      console.error(`音乐解析失败：${file.name}`, error);
+      song = createSong(file);
+    }
+
+    song.filePath = resolveFilePath(file);
+
+    // 桌面端：没有内嵌歌词时，尝试读同目录下的同名 .lrc
+    if (!song.lyrics && song.filePath) {
+      try {
+        const lrc = await window.zhuplayDesktop.readLyricsFile(song.filePath);
+        if (lrc) song.lyrics = lrc;
+      } catch {
+        // 没找到歌词文件属于正常情况，静默忽略
+      }
+    }
+
+    return song;
+  }
+
+  // 取消正在进行的导入（已解析完成的歌曲仍会保存）
+  function cancelImport() {
+    if (importState.active) importState.cancelRequested = true;
+  }
+
   async function importSongs(files) {
     // 先把已经在库里的 / 同批次重复选中的文件筛掉，再解析元数据（省掉无效解析）
     const { fresh, duplicates } = filterDuplicateFiles(
@@ -60,53 +93,78 @@ export function useMusicActions() {
       return;
     }
 
-    const newSongs = await Promise.all(
-      fresh.map(async (file) => {
-        let song;
+    importState.active = true;
+    importState.done = 0;
+    importState.total = fresh.length;
+    importState.failed = [];
+    importState.cancelled = false;
+    importState.cancelRequested = false;
 
-        try {
-          const metadata = await parseMusicMetadata(file);
-          song = createSong(file, metadata);
-        } catch (error) {
-          console.error(`音乐解析失败：${file.name}`, error);
-          song = createSong(file);
-        }
+    const newSongs = [];
 
-        song.filePath = resolveFilePath(file);
+    try {
+      // 限制 4 个并发：比全并行慢一点，但进度可见、内存更稳
+      let cursor = 0;
 
-        // 桌面端：没有内嵌歌词时，尝试读同目录下的同名 .lrc
-        if (!song.lyrics && song.filePath) {
+      async function worker() {
+        while (cursor < fresh.length) {
+          if (importState.cancelRequested) return;
+
+          const file = fresh[cursor];
+          cursor += 1;
+
           try {
-            const lrc = await window.zhuplayDesktop.readLyricsFile(song.filePath);
-            if (lrc) song.lyrics = lrc;
-          } catch {
-            // 没找到歌词文件属于正常情况，静默忽略
+            newSongs.push(await buildSong(file));
+          } catch (error) {
+            importState.failed.push({
+              name: file.name,
+              reason: String(error?.message || error),
+            });
+          } finally {
+            importState.done += 1;
           }
         }
-
-        return song;
-      }),
-    );
-
-    let failed = 0;
-
-    for (const song of newSongs) {
-      try {
-        await musicStorage.saveSong(song);
-      } catch (error) {
-        failed += 1;
-        console.error(`歌曲保存失败：${song.filename}`, error);
       }
+
+      await Promise.all(
+        Array.from({ length: Math.min(4, fresh.length) }, () => worker()),
+      );
+
+      importState.cancelled = importState.cancelRequested;
+
+      // 解析完统一写入（一个事务）
+      if (newSongs.length > 0) {
+        try {
+          await musicStorage.saveSongs(newSongs);
+          musicStore.addSongs(newSongs);
+        } catch (error) {
+          console.error("歌曲保存失败：", error);
+          toast.error("歌曲保存失败，刷新后可能丢失");
+        }
+      }
+    } finally {
+      importState.active = false;
     }
 
-    musicStore.addSongs(newSongs);
-
     const skipped = duplicates.length > 0 ? `，跳过 ${duplicates.length} 首重复` : "";
+    const failedCount = importState.failed.length;
+    const cancelText = importState.cancelled ? "（已取消）" : "";
 
-    if (failed > 0) {
-      toast.error(`${failed} 首歌曲保存失败，刷新后可能丢失`);
-    } else if (newSongs.length > 0) {
-      toast.success(`已导入 ${newSongs.length} 首歌曲${skipped}`);
+    if (newSongs.length > 0) {
+      toast.success(`已导入 ${newSongs.length} 首歌曲${skipped}${cancelText}`);
+    } else if (!importState.cancelled) {
+      toast.error("没有歌曲导入成功");
+    }
+
+    if (failedCount > 0) {
+      const names = importState.failed
+        .slice(0, 3)
+        .map((item) => item.name)
+        .join("、");
+      toast.error(
+        `${failedCount} 首解析失败：${names}${failedCount > 3 ? " 等" : ""}`,
+      );
+      console.warn("导入失败清单：", importState.failed);
     }
   }
 
@@ -213,16 +271,12 @@ export function useMusicActions() {
       playerStore.resetPlayer();
       releaseAllAudioUrls();
 
-      await musicStorage.clearAll();
-
       const emptiedPlaylists = playlistStore.playlists.map((playlist) => ({
         ...playlist,
         songIds: [],
       }));
 
-      for (const playlist of emptiedPlaylists) {
-        await playlistStorage.savePlaylist(playlist);
-      }
+      await musicStorage.clearSongsAndMusicData(emptiedPlaylists);
 
       playlistStore.setPlaylists(emptiedPlaylists);
       musicStore.setSongs([]);
@@ -293,6 +347,7 @@ export function useMusicActions() {
 
   return {
     importSongs,
+    cancelImport,
     toggleFavorite,
     clearRecentSongs,
     removeRecentSong,

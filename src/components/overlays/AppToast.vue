@@ -9,7 +9,14 @@ const { toasts, remove } = useToast();
 
 <template>
   <Teleport to="body">
-    <TransitionGroup name="toast" tag="div" class="toast-container">
+    <TransitionGroup
+      name="toast"
+      tag="div"
+      class="toast-container"
+      role="region"
+      aria-live="polite"
+      aria-label="操作提示"
+    >
       <div
         v-for="toast in toasts"
         :key="toast.id"

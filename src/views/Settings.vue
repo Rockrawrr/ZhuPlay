@@ -8,7 +8,7 @@ import { Database, FolderOpen, HardDrive, Info, Trash2 } from "lucide-vue-next";
 import { useMusicStore } from "@/stores/music";
 import { usePlaylistStore } from "@/stores/playlist";
 import { usePlayerStore } from "@/stores/player";
-import { getMusicStorage, getPlaylistStorage } from "@/app/services";
+import { getMusicStorage } from "@/app/services";
 import { useMusicActions } from "@/composables/useMusicActions";
 import { usePlaylistActions } from "@/composables/usePlaylistActions";
 import { useToast } from "@/composables/useToast";
@@ -23,7 +23,6 @@ const playlistStore = usePlaylistStore();
 const playerStore = usePlayerStore();
 
 const musicStorage = getMusicStorage();
-const playlistStorage = getPlaylistStorage();
 
 const { clearRecentSongs, clearAllSongs } = useMusicActions();
 const { clearAllPlaylists } = usePlaylistActions();
@@ -45,6 +44,11 @@ const usagePercent = computed(() => {
 
   return Math.min(100, Math.round((storage.value.usage / storage.value.quota) * 100));
 });
+
+// 配额接近用尽时提醒（浏览器一般到 100% 才会拒绝写入，提前预警）
+const isStorageTight = computed(
+  () => storage.value.quota > 0 && storage.value.usage / storage.value.quota >= 0.8,
+);
 
 const stats = computed(() => [
   { label: "歌曲", value: songs.value.length },
@@ -238,7 +242,7 @@ async function handleClearAll() {
   if (!confirmed) return;
 
   try {
-    await Promise.all([musicStorage.clearAll(), playlistStorage.clearAll()]);
+    await musicStorage.clearAll();
     window.location.reload();
   } catch (error) {
     console.error("清空数据失败：", error);
@@ -258,11 +262,18 @@ async function handleClearAll() {
 
         <template v-if="storage.supported">
           <div class="usagebar">
-            <div class="usagebar-fill" :style="{ width: `${usagePercent}%` }"></div>
+            <div
+              class="usagebar-fill"
+              :class="{ tight: isStorageTight }"
+              :style="{ width: `${usagePercent}%` }"
+            ></div>
           </div>
           <p class="panel-hint">
             已用 {{ formatBytes(storage.usage) }} / 可用配额
             {{ formatBytes(storage.quota) }}（{{ usagePercent }}%）
+          </p>
+          <p v-if="isStorageTight" class="panel-hint storage-warning">
+            存储空间即将用尽，建议清理重复歌曲或删除不需要的歌曲，否则新导入可能失败。
           </p>
         </template>
 
@@ -553,6 +564,15 @@ async function handleClearAll() {
   height: 100%;
   background: var(--color-primary);
   transition: width 0.3s ease;
+}
+
+.usagebar-fill.tight {
+  background: #e06262;
+}
+
+.storage-warning {
+  margin-top: 6px;
+  color: #e79393;
 }
 
 /* 统计 */

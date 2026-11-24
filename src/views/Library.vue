@@ -7,6 +7,7 @@ import {
   Upload,
   Music2,
   ArrowLeft,
+  ArrowUpDown,
   Heart,
   HardDrive,
   Trash2,
@@ -24,34 +25,95 @@ import { useToast } from "@/composables/useToast";
 import { useSongMenu } from "@/composables/useSongMenu";
 import { usePlaylistPicker } from "@/composables/useOverlays";
 import { useConfirm } from "@/composables/useConfirm";
+import { useImportStatus } from "@/composables/useImportStatus";
 import { formatBytes } from "@/utils/format";
 
 const musicStore = useMusicStore();
 const { songs, favoriteSongs } = storeToRefs(musicStore);
 
 const { playSong } = useAudioPlayer();
-const { importSongs, removeSong, removeSongs, toggleFavorite } =
+const { importSongs, cancelImport, removeSong, removeSongs, toggleFavorite } =
   useMusicActions();
 const { canGoBack, goBack } = useNavigation();
 const toast = useToast();
 const { openSongMenu } = useSongMenu();
 const { openPlaylistPicker } = usePlaylistPicker();
 const { confirm } = useConfirm();
+const { importState } = useImportStatus();
 
 const fileInput = ref(null);
+
+// ===== 排序 =====
+const SORT_STORAGE_KEY = "zhuplay:library-sort";
+
+const sortOptions = [
+  { value: "added", label: "最近添加" },
+  { value: "name", label: "歌名" },
+  { value: "artist", label: "歌手" },
+  { value: "album", label: "专辑" },
+  { value: "duration", label: "时长" },
+  { value: "size", label: "文件大小" },
+];
+
+const sortKey = ref(
+  sortOptions.some((item) => item.value === localStorage.getItem(SORT_STORAGE_KEY))
+    ? localStorage.getItem(SORT_STORAGE_KEY)
+    : "added",
+);
+
+function changeSort(value) {
+  sortKey.value = value;
+  localStorage.setItem(SORT_STORAGE_KEY, value);
+}
+
+const collator = new Intl.Collator("zh-CN", { numeric: true, sensitivity: "base" });
+
+const sortedSongs = computed(() => {
+  const list = [...songs.value];
+
+  switch (sortKey.value) {
+    case "name":
+      return list.sort((a, b) => collator.compare(a.name || "", b.name || ""));
+    case "artist":
+      return list.sort(
+        (a, b) =>
+          collator.compare(a.artist || "", b.artist || "") ||
+          collator.compare(a.name || "", b.name || ""),
+      );
+    case "album":
+      return list.sort(
+        (a, b) =>
+          collator.compare(a.album || "", b.album || "") ||
+          (a.trackNumber ?? 0) - (b.trackNumber ?? 0),
+      );
+    case "duration":
+      return list.sort((a, b) => (b.duration ?? 0) - (a.duration ?? 0));
+    case "size":
+      return list.sort((a, b) => (b.fileSize ?? 0) - (a.fileSize ?? 0));
+    case "added":
+    default:
+      return list.sort((a, b) => (b.importedAt ?? 0) - (a.importedAt ?? 0));
+  }
+});
 
 // ===== 批量操作 =====
 const selectMode = ref(false);
 const selectedIds = ref(new Set());
 
 const selectedSongs = computed(() =>
-  songs.value.filter((song) => selectedIds.value.has(song.id)),
+  sortedSongs.value.filter((song) => selectedIds.value.has(song.id)),
 );
 
 const allSelected = computed(
   () =>
-    songs.value.length > 0 && selectedIds.value.size === songs.value.length,
+    sortedSongs.value.length > 0 &&
+    selectedIds.value.size === sortedSongs.value.length,
 );
+
+const importPercent = computed(() => {
+  if (!importState.total) return 0;
+  return Math.min(100, Math.round((importState.done / importState.total) * 100));
+});
 
 function toggleSelectMode() {
   selectMode.value = !selectMode.value;
@@ -68,13 +130,13 @@ function toggleSelect(song) {
 function toggleSelectAll() {
   selectedIds.value = allSelected.value
     ? new Set()
-    : new Set(songs.value.map((song) => song.id));
+    : new Set(sortedSongs.value.map((song) => song.id));
 }
 
-// 一键播放全部歌曲（整个音乐库作为播放队列）
+// 一键播放全部歌曲（按当前排序作为播放队列）
 function playAll() {
-  if (songs.value.length === 0) return;
-  playSong(songs.value[0], songs.value);
+  if (sortedSongs.value.length === 0) return;
+  playSong(sortedSongs.value[0], sortedSongs.value);
 }
 
 function playSelected() {
@@ -138,7 +200,10 @@ function handleAddToPlaylist(song) {
 
 // 右键歌曲行：打开统一的歌曲菜单
 function handleSongMenu(event, song) {
-  openSongMenu(event, song, { source: "library", list: songs.value });
+  openSongMenu(event, song, {
+    source: "library",
+    list: sortedSongs.value,
+  });
 }
 
 function openFilePicker() {
@@ -218,10 +283,23 @@ function onDrop(event) {
       </div>
 
       <div class="header-actions">
+        <label v-if="sortedSongs.length > 0" class="sort-control">
+          <ArrowUpDown :size="14" />
+          <select
+            :value="sortKey"
+            aria-label="排序方式"
+            @change="changeSort($event.target.value)"
+          >
+            <option v-for="option in sortOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
         <button
           v-if="songs.length > 0"
           class="ghost-button header-action"
-          title="把整个音乐库加入播放队列并开始播放"
+          title="按当前排序把整个音乐库加入播放队列"
           @click="playAll"
         >
           <Play :size="16" /> 播放全部
@@ -252,8 +330,20 @@ function onDrop(event) {
       />
     </div>
 
+    <!-- 导入进度 -->
+    <div v-if="importState.active" class="import-progress">
+      <div class="import-progress-info">
+        <span>正在导入 {{ importState.done }} / {{ importState.total }}</span>
+        <span class="import-progress-percent">{{ importPercent }}%</span>
+      </div>
+      <div class="import-progress-track">
+        <div class="import-progress-fill" :style="{ width: `${importPercent}%` }"></div>
+      </div>
+      <button class="batch-link" @click="cancelImport">取消</button>
+    </div>
+
     <!-- 批量操作栏 -->
-    <div v-if="selectMode && songs.length > 0" class="batch-bar">
+    <div v-if="selectMode && sortedSongs.length > 0" class="batch-bar">
       <div class="batch-info">
         <span class="batch-count">已选 {{ selectedIds.size }} 首</span>
         <button class="batch-link" @click="toggleSelectAll">
@@ -325,7 +415,7 @@ function onDrop(event) {
 
     <!-- 有歌时的列表：上万首也只渲染可视区 -->
     <div v-else class="song-list">
-      <VirtualList :items="songs" :item-height="60">
+      <VirtualList :items="sortedSongs" :item-height="60">
         <template #default="{ item: song, index }">
           <SongRow
             :song="song"
@@ -339,7 +429,7 @@ function onDrop(event) {
             removable
             remove-label="删除歌曲"
             :remove-icon="Trash2"
-            @play="playSong(song, songs)"
+            @play="playSong(song, sortedSongs)"
             @toggle-select="toggleSelect(song)"
             @remove="removeSong(song.id)"
             @toggle-favorite="toggleFavorite(song.id)"
@@ -445,6 +535,78 @@ function onDrop(event) {
   background: #1d2b23;
   color: var(--color-primary);
   border-color: #2f5f47;
+}
+
+/* 排序选择器 */
+.sort-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid #2f2f2f;
+  border-radius: 18px;
+  color: #b3b3b3;
+}
+
+.sort-control select {
+  border: none;
+  background: transparent;
+  color: #d0d0d0;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.sort-control select option {
+  background: #1c1c1c;
+  color: #fff;
+}
+
+/* 导入进度 */
+.import-progress {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #16241d;
+  border: 1px solid #24402f;
+}
+
+.import-progress-info {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #d0d0d0;
+  font-size: 12px;
+}
+
+.import-progress-percent {
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.import-progress-track {
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: 3px;
+  background: #22322a;
+  overflow: hidden;
+}
+
+.import-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width 0.2s ease;
+}
+
+.import-progress .batch-link {
+  grid-row: 1;
+  grid-column: 2;
 }
 
 /* 批量操作栏 */

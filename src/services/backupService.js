@@ -11,7 +11,7 @@
  */
 import { useMusicStore } from "@/stores/music";
 import { usePlaylistStore } from "@/stores/playlist";
-import { getMusicStorage, getPlaylistStorage } from "@/app/services";
+import { getMusicStorage } from "@/app/services";
 import { STORAGE_KEYS } from "@/storage/keys";
 import { songFingerprint } from "@/utils/dedupe";
 
@@ -43,6 +43,35 @@ function appVersion() {
 
 // 跨设备匹配歌曲的依据：文件名 + 文件大小（与导入去重共用同一套规则）
 const fingerprint = songFingerprint;
+
+const MAX_BACKUP_BYTES = 20 * 1024 * 1024;
+const MAX_BACKUP_SONGS = 100_000;
+const MAX_BACKUP_PLAYLISTS = 10_000;
+
+function validateBackup(snapshot) {
+  const fail = () => { throw new Error("备份文件格式无效或内容超出限制"); };
+  if (!snapshot || typeof snapshot !== "object" || snapshot.app !== "ZhuPlay" ||
+      !Array.isArray(snapshot.songs) || snapshot.songs.length > MAX_BACKUP_SONGS ||
+      (snapshot.playlists != null && (!Array.isArray(snapshot.playlists) || snapshot.playlists.length > MAX_BACKUP_PLAYLISTS)) ||
+      (snapshot.favorites != null && !Array.isArray(snapshot.favorites)) ||
+      (snapshot.recent != null && !Array.isArray(snapshot.recent))) fail();
+  const ids = new Set();
+  for (const song of snapshot.songs) {
+    if (!song || typeof song !== "object" || typeof song.id !== "string" || !song.id ||
+        typeof song.filename !== "string" || !Number.isFinite(Number(song.fileSize ?? song.size)) ||
+        Number(song.fileSize ?? song.size) < 0 || ids.has(song.id)) fail();
+    ids.add(song.id);
+  }
+  for (const playlist of snapshot.playlists ?? []) {
+    if (!playlist || typeof playlist !== "object" || typeof playlist.name !== "string" ||
+        !Array.isArray(playlist.songIds) || playlist.songIds.some((id) => typeof id !== "string")) fail();
+  }
+  for (const list of [snapshot.favorites ?? [], snapshot.recent ?? []]) {
+    if (list.some((id) => typeof id !== "string")) fail();
+  }
+  if (snapshot.stats != null && (typeof snapshot.stats !== "object" || Array.isArray(snapshot.stats))) fail();
+  return snapshot;
+}
 
 // 生成备份快照
 export async function buildSnapshot() {
@@ -85,14 +114,11 @@ function getStatsSnapshot() {
 
 // 把快照合并进当前数据，返回合并结果摘要
 export async function applySnapshot(snapshot) {
-  if (!snapshot || snapshot.app !== "ZhuPlay" || !Array.isArray(snapshot.songs)) {
-    throw new Error("不是有效的 ZhuPlay 备份文件");
-  }
+  validateBackup(snapshot);
 
   const musicStore = useMusicStore();
   const playlistStore = usePlaylistStore();
   const musicStorage = getMusicStorage();
-  const playlistStorage = getPlaylistStorage();
 
   // 1. 建立 旧id → 本地歌曲id 的映射
   const byFingerprint = new Map();
@@ -111,7 +137,7 @@ export async function applySnapshot(snapshot) {
     }
   }
 
-  // 2. 歌单：全部作为新歌单导入
+  // 2. 先在临时数组中准备歌单，不提前修改 store 或 IndexedDB。
   const existingNames = new Set(
     playlistStore.playlists.map((playlist) => playlist.name),
   );
@@ -128,13 +154,11 @@ export async function applySnapshot(snapshot) {
     if (existingNames.has(name)) name = `${name}（导入）`;
     existingNames.add(name);
 
-    const playlist = playlistStore.createPlaylist(name);
-    for (const id of new Set(mappedIds)) playlistStore.addSong(playlist.id, id);
-
-    const saved = playlistStore.playlists.find((p) => p.id === playlist.id);
-    if (saved) await playlistStorage.savePlaylist(saved);
-
-    createdPlaylists.push({ name, count: new Set(mappedIds).size });
+    const playlist = {
+      id: crypto.randomUUID(), name, songIds: [...new Set(mappedIds)],
+      createdAt: Date.now(), updatedAt: Date.now(),
+    };
+    createdPlaylists.push({ name, count: playlist.songIds.length, row: playlist });
   }
 
   // 3. 收藏 / 最近播放：并集
@@ -142,30 +166,21 @@ export async function applySnapshot(snapshot) {
     .map((id) => idMap.get(id))
     .filter(Boolean);
 
-  for (const id of mappedFavorites) {
-    if (!musicStore.favoriteSongs.includes(id)) {
-      musicStore.toggleFavorite(id);
-    }
-  }
+  const nextFavorites = [...new Set([...musicStore.favoriteSongs, ...mappedFavorites])];
 
   const mappedRecent = (snapshot.recent ?? [])
     .map((id) => idMap.get(id))
     .filter(Boolean);
 
+  const recentById = new Map(musicStore.recentSongs.map((song) => [song.id, song]));
   for (const id of [...mappedRecent].reverse()) {
     const song = musicStore.songs.find((item) => item.id === id);
-    if (song) musicStore.addRecentSong(song);
+    if (song) { recentById.delete(id); recentById.set(id, song); }
   }
-
-  await musicStorage.saveMusicData(STORAGE_KEYS.favorites, [
-    ...musicStore.favoriteSongs,
-  ]);
-  await musicStorage.saveMusicData(
-    STORAGE_KEYS.recentSongs,
-    musicStore.recentSongs.map((song) => song.id),
-  );
+  const nextRecent = [...recentById.values()].slice(-50).reverse();
 
   // 4. 听歌统计：合并次数与时长
+  let mergedStats = null;
   if (snapshot.stats && typeof snapshot.stats === "object") {
     const current =
       (await musicStorage.getMusicData(STORAGE_KEYS.stats, null)) ?? {
@@ -204,13 +219,24 @@ export async function applySnapshot(snapshot) {
     );
     current.updatedAt = Date.now();
 
-    await musicStorage.saveMusicData(STORAGE_KEYS.stats, current);
+    mergedStats = current;
   }
+
+  const playlistRows = createdPlaylists.map(({ row }) => row);
+  await musicStorage.saveBackupMerge({
+    favorites: nextFavorites,
+    recentSongs: nextRecent.map((song) => song.id),
+    stats: mergedStats,
+    playlists: playlistRows,
+  });
+  musicStore.setFavorites(nextFavorites);
+  musicStore.setRecentSongs(nextRecent.map((song) => song.id));
+  playlistStore.setPlaylists([...playlistRows, ...playlistStore.playlists]);
 
   return {
     matched,
     missing: snapshot.songs.length - matched,
-    playlists: createdPlaylists,
+    playlists: createdPlaylists.map(({ name, count }) => ({ name, count })),
   };
 }
 
@@ -245,6 +271,9 @@ export async function importBackup() {
 
   if (!text) return null;
 
+  if (typeof text !== "string" || text.length > MAX_BACKUP_BYTES) {
+    throw new Error("备份文件超过 20 MB 限制");
+  }
   return applySnapshot(JSON.parse(text));
 }
 

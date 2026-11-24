@@ -8,6 +8,7 @@ import { usePlayerStore } from "@/stores/player";
 import { useAudioPlayer } from "@/composables/useAudioPlayer";
 import { useConfirm } from "@/composables/useConfirm";
 import SongCover from "@/components/common/SongCover.vue";
+import VirtualList from "@/components/common/VirtualList.vue";
 
 const emit = defineEmits(["close"]);
 
@@ -58,43 +59,45 @@ onUnmounted(() => window.removeEventListener("keydown", handleKeydown));
         <span>在任意列表里点一首歌，就会从这里开始排队</span>
       </div>
 
-      <ul v-else class="queue-list">
-        <li
-          v-for="(song, index) in queue"
-          :key="`${song.id}-${index}`"
-          class="queue-item"
-          :class="{ current: index === currentIndex }"
-        >
-          <button
-            class="queue-item-button"
-            :disabled="index === currentIndex"
-            :title="index === currentIndex ? '正在播放' : `播放 ${song.name}`"
-            @click="playAt(index)"
-          >
-            <span class="queue-index">
-              <Play
-                v-if="index === currentIndex"
-                :size="13"
-                fill="currentColor"
-              />
-              <template v-else>{{ index + 1 }}</template>
-            </span>
+      <div v-else class="queue-list-wrap">
+        <VirtualList :items="queue" :item-height="50">
+          <template #default="{ item: song, index }">
+            <div
+              class="queue-item"
+              :class="{ current: index === currentIndex }"
+            >
+              <button
+                class="queue-item-button"
+                :disabled="index === currentIndex"
+                :title="index === currentIndex ? '正在播放' : `播放 ${song.name}`"
+                @click="playAt(index)"
+              >
+                <span class="queue-index">
+                  <Play
+                    v-if="index === currentIndex"
+                    :size="13"
+                    fill="currentColor"
+                  />
+                  <template v-else>{{ index + 1 }}</template>
+                </span>
 
-            <span class="queue-cover">
-              <SongCover :blob="song.cover" :alt="song.album || song.name">
-                <Music2 :size="16" />
-              </SongCover>
-            </span>
+                <span class="queue-cover">
+                  <SongCover :blob="song.cover" :alt="song.album || song.name">
+                    <Music2 :size="16" />
+                  </SongCover>
+                </span>
 
-            <span class="queue-info">
-              <span class="queue-name">{{ song.name }}</span>
-              <span class="queue-artist">
-                {{ song.artist || song.filename }}
-              </span>
-            </span>
-          </button>
-        </li>
-      </ul>
+                <span class="queue-info">
+                  <span class="queue-name">{{ song.name }}</span>
+                  <span class="queue-artist">
+                    {{ song.artist || song.filename }}
+                  </span>
+                </span>
+              </button>
+            </div>
+          </template>
+        </VirtualList>
+      </div>
     </aside>
   </div>
 </template>
@@ -195,12 +198,14 @@ onUnmounted(() => window.removeEventListener("keydown", handleKeydown));
   line-height: 1.6;
 }
 
-.queue-list {
-  margin: 0;
-  padding: 6px;
-  list-style: none;
-  overflow-y: auto;
+.queue-list-wrap {
+  flex: 1;
   min-height: 0;
+  padding: 6px;
+}
+
+.queue-item {
+  height: 50px;
 }
 
 .queue-item-button {

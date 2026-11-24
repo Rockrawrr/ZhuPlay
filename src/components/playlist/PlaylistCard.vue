@@ -1,10 +1,14 @@
 <script setup>
-// 歌单卡片（纯展示）：封面占位、名称、歌曲数、创建日期 + 重命名/删除入口
+// 歌单卡片（纯展示）：封面（取前 4 首封面拼图，没有则用图标）、名称、歌曲数、创建日期
 // 卡片整体点击 = 打开歌单，所以内部按钮都要 .stop 阻止冒泡
-import { ListMusic, Pencil, Trash2 } from "lucide-vue-next";
+import { computed } from "vue";
+import { ListMusic, Music2, Pencil, Trash2 } from "lucide-vue-next";
+import { storeToRefs } from "pinia";
+import { useMusicStore } from "@/stores/music";
 import { formatDate } from "@/utils/format";
+import SongCover from "@/components/common/SongCover.vue";
 
-defineProps({
+const props = defineProps({
   playlist: {
     type: Object,
     required: true,
@@ -12,12 +16,39 @@ defineProps({
 });
 
 const emit = defineEmits(["open", "rename", "delete"]);
+
+const musicStore = useMusicStore();
+const { songs } = storeToRefs(musicStore);
+
+const songById = computed(() => {
+  const map = new Map();
+  for (const song of songs.value) map.set(song.id, song);
+  return map;
+});
+
+// 封面拼图：最多取前 4 首有封面的歌
+const covers = computed(() =>
+  props.playlist.songIds
+    .map((id) => songById.value.get(id))
+    .filter((song) => Boolean(song?.cover))
+    .slice(0, 4),
+);
 </script>
 
 <template>
   <article class="playlist-card" @click="emit('open')">
-    <div class="playlist-cover">
-      <ListMusic :size="34" />
+    <div class="playlist-cover" :class="{ mosaic: covers.length > 0 }">
+      <template v-if="covers.length > 0">
+        <SongCover
+          v-for="(song, index) in covers"
+          :key="`${song.id}-${index}`"
+          :blob="song.cover"
+          :alt="song.album || song.name"
+        >
+          <Music2 :size="14" />
+        </SongCover>
+      </template>
+      <ListMusic v-else :size="34" />
     </div>
 
     <div class="playlist-info">
@@ -65,9 +96,23 @@ const emit = defineEmits(["open", "rename", "delete"]);
   min-width: 64px;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border-radius: 8px;
   background: linear-gradient(135deg, #2f6b55, #16241f);
   color: #d9f7e4;
+}
+
+/* 2×2 封面拼图 */
+.playlist-cover.mosaic {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1px;
+}
+
+.playlist-cover.mosaic :deep(.cover-image) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .playlist-info {
