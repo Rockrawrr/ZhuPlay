@@ -213,12 +213,16 @@ export function useMusicActions() {
       playerStore.resetPlayer();
       releaseAllAudioUrls();
 
+      await musicStorage.clearAll();
+
       const emptiedPlaylists = playlistStore.playlists.map((playlist) => ({
         ...playlist,
         songIds: [],
       }));
 
-      await musicStorage.clearSongsAndMusicData(emptiedPlaylists);
+      for (const playlist of emptiedPlaylists) {
+        await playlistStorage.savePlaylist(playlist);
+      }
 
       playlistStore.setPlaylists(emptiedPlaylists);
       musicStore.setSongs([]);

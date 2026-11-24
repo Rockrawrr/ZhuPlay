@@ -30,8 +30,6 @@ publish:
 npmRebuild: false
 
 win:
-  # Skip optional executable resource editing; avoids downloading rcedit on offline builds.
-  signAndEditExecutable: false
   target:
     - target: nsis
       arch:

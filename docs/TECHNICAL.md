@@ -1,6 +1,6 @@
 # ZhuPlay 技术文档
 
-> 版本基线：v1.2.0 · 本地优先的桌面/网页音乐播放器
+> 版本基线：v1.2.5 · 本地优先的桌面/网页音乐播放器
 > 定位：单机、离线可用、数据不过服务器；面向个人与朋友使用
 
 ---
@@ -70,7 +70,7 @@ src/
 ├─ views/          Home / Library / Favorites / Playlists / Search / Stats / Settings …
 ├─ components/
 │  ├─ common/      EmptyState · PageHeader · SongRow · SongCover · VirtualList
-│  ├─ overlays/    AppDialog · AppToast · ContextMenu · SongInfoDialog · AddToPlaylistDialog
+│  ├─ overlays/    AppDialog · AppToast · ContextMenu · SongInfoDialog · AddToPlaylistDialog · DuplicateCleanupDialog
 │  ├─ home/        HomeAlbumGrid · HomeRecentList
 │  ├─ player/      PlayerBar · TrackInfo · PlaybackControls · ProgressBar · VolumeControl · QueuePanel · LyricsScreen
 │  ├─ playlist/    PlaylistCard · PlaylistDetail · AddSongsPanel
@@ -81,7 +81,7 @@ src/
 ├─ storage/        database · musicStorage · playlistStorage · keys · adapters/indexedDBAdapter
 ├─ stores/         music · player · playlist
 ├─ models/         song.js
-└─ utils/          format · lyrics
+└─ utils/          format · lyrics · dedupe · greeting · persist
 electron/
 ├─ main.cjs        主进程（协议、窗口、托盘、IPC、自动更新）
 └─ preload.cjs     最小暴露面
@@ -90,7 +90,9 @@ build/             icon.ico / icon.png / make_icon.py
 
 ---
 
-## 5. 数据模型与存储### 5.1 IndexedDB
+## 5. 数据模型与存储
+
+### 5.1 IndexedDB
 
 数据库 `ZhuPlayDB`（版本 2），三个对象仓库：
 

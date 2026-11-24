@@ -1,28 +1,25 @@
 # ZhuPlay
 
-<p align="center">
-  <a href="https://github.com/Rockrawrr/ZhuPlay/releases/tag/v1.2.6">
-    <img src="https://img.shields.io/badge/Download-ZhuPlay%20v1.2.6-blue?style=for-the-badge&logo=windows" alt="Download ZhuPlay">
-  </a>
-</p>
-
-<p align="center">
-  <strong>本地音乐播放器（Web + Electron 桌面端）</strong>
-</p>
-
-<p align="center">
-  <a href="https://github.com/Rockrawrr/ZhuPlay/releases/tag/v1.2.6">下载 Windows 桌面版 v1.2.6</a>
-  ·
-  <a href="docs/TECHNICAL.md">技术文档</a>
-</p>
+> 本地音乐播放器（Web + Electron 桌面端）· 当前版本 **1.2.5**
 
 完整架构与实现说明见 **[docs/TECHNICAL.md](docs/TECHNICAL.md)**。
 
-本地音乐播放器（Vue 3 + Vite + Pinia + IndexedDB）。
+本地音乐播放器（Vue 3 + Vite + Pinia + IndexedDB），数据只存在本机，不上传服务器。
+
+## 功能
+
+- 本地导入（MP3 / FLAC / WAV / AAC / OGG / M4A），自动读取标签、封面与内嵌歌词
+- 播放队列、随机播放、单曲 / 列表循环、音量与静音、系统媒体键
+- 歌单、收藏、搜索、最近播放 / 最近导入、听歌统计（次数 / 时长 / 最近 7 天 / 榜单）
+- 全屏歌词：模糊封面背景、逐句高亮、点击某句跳转
+- 导入去重 + 历史重复歌曲清理
+- 批量操作：全选、播放、收藏、加入歌单、批量删除
+- 备份导出 / 导入（歌单、收藏、统计），自定义数据目录
+- 桌面端：托盘、窗口记忆、开机自启、媒体控制、在文件夹中显示
 
 ## 目录结构
 
-```text
+```
 zhuplay
 ├─ index.html
 ├─ jsconfig.json
@@ -46,34 +43,37 @@ zhuplay
    │     └─ ui.css             # 通用 UI 原语（页面壳、按钮、空状态）
    ├─ components
    │  ├─ Sidebar.vue           # 侧边栏导航
-   │  ├─ common                 # 跨页面通用 UI
+   │  ├─ common                # 跨页面通用 UI
    │  │  ├─ EmptyState.vue     # 统一空状态
    │  │  ├─ PageHeader.vue     # 统一页面头部
-   │  │  └─ SongRow.vue        # 统一歌曲行（元信息与按钮由 props 控制）
-   │  ├─ overlays               # 全局浮层
-   │  │  ├─ AddToPlaylistDialog.vue # 添加到歌单
+   │  │  ├─ SongCover.vue      # 封面（Blob 按需转 URL，卸载即回收）
+   │  │  ├─ SongRow.vue        # 统一歌曲行（元信息与按钮由 props 控制）
+   │  │  └─ VirtualList.vue    # 固定行高虚拟滚动
+   │  ├─ overlays              # 全局浮层
+   │  │  ├─ AddToPlaylistDialog.vue # 添加到歌单（支持多选）
    │  │  ├─ AppDialog.vue      # 确认 / 输入对话框
    │  │  ├─ AppToast.vue       # 轻提示
    │  │  ├─ ContextMenu.vue    # 右键菜单
+   │  │  ├─ DuplicateCleanupDialog.vue # 重复歌曲清理
    │  │  └─ SongInfoDialog.vue # 歌曲信息
-   │  ├─ home                   # 首页区块
+   │  ├─ home                  # 首页区块
    │  │  ├─ HomeAlbumGrid.vue  # 为你推荐网格
    │  │  └─ HomeRecentList.vue # 最近导入 / 最近播放列表
-   │  ├─ player                 # 播放器 UI
+   │  ├─ player                # 播放器 UI
    │  │  ├─ PlayerBar.vue      # 播放条容器（持有状态）
-   │  │  ├─ TrackInfo.vue       # 封面 / 歌名 / 喜欢
+   │  │  ├─ TrackInfo.vue      # 封面 / 歌名 / 喜欢
    │  │  ├─ PlaybackControls.vue # 随机、上一首、播放、下一首、循环
    │  │  ├─ ProgressBar.vue    # 播放进度
    │  │  ├─ VolumeControl.vue  # 音量与静音
    │  │  ├─ QueuePanel.vue     # 播放队列面板
    │  │  └─ LyricsScreen.vue   # 全屏歌词页（模糊封面背景 + 逐句高亮，点击左下角歌曲进入）
-   │  └─ playlist               # 歌单 UI
+   │  └─ playlist              # 歌单 UI
    │     ├─ PlaylistCard.vue   # 歌单卡片
    │     ├─ PlaylistDetail.vue # 歌单详情（头部 + 歌曲列表）
    │     └─ AddSongsPanel.vue  # 添加歌曲弹层
    ├─ composables
    │  ├─ useAudioPlayer.js     # 播放内核（单例）
-   │  ├─ useMusicActions.js    # 导入 / 收藏 / 删除
+   │  ├─ useMusicActions.js    # 导入 / 收藏 / 删除 / 导入去重
    │  ├─ usePlaylistActions.js # 歌单增删改（store + 落库）
    │  ├─ useToast.js           # 全局提示（模块级单例）
    │  ├─ useConfirm.js         # 确认 / 输入对话框（Promise 化）
@@ -81,6 +81,8 @@ zhuplay
    │  ├─ useSongMenu.js        # 歌曲右键菜单项定义
    │  ├─ useNavigation.js      # 导航门面（vue-router 封装）
    │  ├─ useMediaSession.js    # 系统媒体控制（媒体键 / 媒体弹窗）
+   │  ├─ useListeningStats.js  # 听歌统计（次数 / 时长 / 每日）
+   │  ├─ useObjectUrl.js       # Blob → objectURL，组件卸载自动回收
    │  └─ useVolume.js          # 音量控制与持久化
    ├─ layouts
    │  └─ AppLayout.vue         # 应用骨架
@@ -90,9 +92,11 @@ zhuplay
    │  └─ index.js              # 路由表（hash 模式，桌面端 file:// 也能跑）
    ├─ services                 # 无状态业务
    │  ├─ audioService.js       # <audio> 封装
-   │  ├─ metadataService.js    # 标签 / 封面解析
-   │  ├─ musicService.js       # 歌曲创建与资源释放
-   │  └─ playlistService.js    # 歌单模型与纯函数
+   │  ├─ metadataService.js    # 标签 / 封面 / 内嵌歌词解析
+   │  ├─ musicService.js       # 歌曲创建
+   │  ├─ playlistService.js    # 歌单模型与纯函数
+   │  ├─ assetUrls.js          # 音频 objectURL 的 LRU 缓存
+   │  └─ backupService.js      # 备份导出 / 导入（元数据合并）
    ├─ storage
    │  ├─ database.js           # IndexedDB 连接（v2：songs / musicData / playlists）
    │  ├─ keys.js               # 存储 key 常量
@@ -105,8 +109,11 @@ zhuplay
    │  ├─ player.js             # 播放状态 / 队列 / 音量
    │  └─ playlist.js           # 歌单列表 / 当前歌单
    ├─ utils
-   │  ├─ format.js             # 时间 / 大小 / 日期格式化
-   │  └─ lyrics.js             # LRC 解析与当前行定位
+   │  ├─ format.js             # 时间 / 大小 / 日期 / 时长格式化
+   │  ├─ lyrics.js             # LRC 解析与当前行定位
+   │  ├─ dedupe.js             # 导入去重与重复分组
+   │  ├─ greeting.js           # 首页问候语（按小时）
+   │  └─ persist.js            # 持久化容错封装
    └─ views
       ├─ Home.vue
       ├─ Library.vue
@@ -117,6 +124,12 @@ zhuplay
       ├─ Settings.vue
       ├─ RecentPlayed.vue
       └─ RecentImported.vue
+   ├─ electron
+   │  ├─ main.cjs                # 主进程（app:// 协议 / 窗口 / 托盘 / IPC / 自动更新）
+   │  └─ preload.cjs             # 最小暴露面
+   ├─ build                      # 应用图标（icon.ico / icon.png / make_icon.py）
+   ├─ docs                       # 技术文档
+   └─ tests                      # Vitest 单元测试
 ```
 
 ## 约定
@@ -130,11 +143,11 @@ zhuplay
 
 ```bash
 npm install
-npm run dev      # 开发
-npm run build    # 构建
-npm run preview  # 预览构建产物
-npm run lint     # ESLint 静态检查
-npm test         # Vitest 单元测试
+npm run dev     # 开发
+npm run build   # 构建
+npm run preview # 预览构建产物
+npm run lint    # ESLint 静态检查
+npm test        # Vitest 单元测试
 ```
 
 ## 桌面端（Electron）
@@ -162,20 +175,20 @@ Electron 相关的设计：
 
 桌面端专属能力：
 
-| 能力           | 说明                                                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 窗口记忆       | 关闭时把位置与大小写入 `%APPDATA%/ZhuPlay/window-state.json`，下次启动还原；显示器拔掉导致越界时只保留尺寸                           |
-| 系统媒体控制   | 通过 `navigator.mediaSession` 接入媒体键 / Windows 媒体弹窗，显示封面与歌名，支持播放、暂停、上/下一首                               |
+| 能力 | 说明 |
+| --- | --- |
+| 窗口记忆 | 关闭时把位置与大小写入 `%APPDATA%/ZhuPlay/window-state.json`，下次启动还原；显示器拔掉导致越界时只保留尺寸 |
+| 系统媒体控制 | 通过 `navigator.mediaSession` 接入媒体键 / Windows 媒体弹窗，显示封面与歌名，支持播放、暂停、上/下一首 |
 | 在文件夹中显示 | 右键菜单项，仅桌面端且歌曲有真实路径时出现（Web 端 `<input type=file>` 拿不到路径；桌面端在导入时用 `webUtils.getPathForFile` 记录） |
-| 托盘           | 关闭窗口收进托盘而不是退出；托盘菜单可显示/隐藏、开机自启、退出                                                                      |
-| 自动更新       | `electron-updater` + GitHub Releases；打包版启动时检查，下载完成后询问是否重启安装                                                   |
-| 应用图标       | `build/icon.ico`（16~256 多尺寸），由 `build/make_icon.py` 生成                                                                      |
+| 托盘 | 关闭窗口收进托盘而不是退出；托盘菜单可显示/隐藏、开机自启、退出 |
+| 自动更新 | `electron-updater` + GitHub Releases；打包版启动时检查，下载完成后询问是否重启安装 |
+| 应用图标 | `build/icon.ico`（16~256 多尺寸），由 `build/make_icon.py` 生成 |
 
 ## 数据存储与迁移
 
 - 所有数据都在本机 IndexedDB（`ZhuPlayDB`）：`songs`（含音频 File 与封面 Blob）、`musicData`（收藏 / 最近播放 / 队列 / 音量 / 听歌统计）、`playlists`
-- 桌面端默认数据目录：`%APPDATA%/zhuplay`；**设置页「数据目录 → 更改」可以换到任意磁盘**（复制现有数据后自动重启，旧目录保留）
-- 自定义目录的指针存在 `%APPDATA%/zhuplay/data-location.json`，删掉它即回到默认目录
+- 桌面端默认数据目录：`%APPDATA%\zhuplay`；**设置页「数据目录 → 更改」可以换到任意磁盘**（复制现有数据后自动重启，旧目录保留）
+- 自定义目录的指针存在 `%APPDATA%\zhuplay\data-location.json`，删掉它即回到默认目录
 - **换电脑完整迁移**：关闭应用 → 复制整个数据目录到新电脑（默认或自定义路径均可）→ 打开即为完整环境
 - **备份导出/导入**（设置页）：只含歌单、收藏、最近播放、听歌统计，几百 KB；导入按「文件名 + 大小」匹配本地歌曲并合并
 
@@ -206,6 +219,7 @@ $env:CSC_KEY_PASSWORD="证书密码"
 npm run electron:build
 ```
 
+
 首次安装依赖如果 Electron 二进制下载失败，可指定镜像：
 
 ```powershell
@@ -213,3 +227,4 @@ $env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
 $env:ELECTRON_BUILDER_BINARIES_MIRROR="https://npmmirror.com/mirrors/electron-builder-binaries/"
 node node_modules/electron/install.js
 ```
+
