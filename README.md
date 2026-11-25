@@ -1,6 +1,6 @@
 # ZhuPlay
 
-> 本地音乐播放器（Web + Electron 桌面端）· 当前版本 **1.2.7**
+> 本地音乐播放器（Web + Electron 桌面端）· 当前版本 **1.2.8**
 
 完整架构与实现说明见 **[docs/TECHNICAL.md](docs/TECHNICAL.md)**。
 
